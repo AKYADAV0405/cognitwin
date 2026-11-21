@@ -361,19 +361,58 @@
     Extension Bearer token is invalid or expired. Please reconnect in your Cognitwin Dashboard.
   </div>
 
-  <!-- Live Session Card -->
-  <div class="card">
+  <!-- Upgraded Live Active Session Card -->
+  <div class="card" id="session-card">
     <div class="card-title">
-      <span>Active Session</span>
+      <div style="display: flex; align-items: center; gap: 6px;">
+        <span>Active Session</span>
+        <span id="media-badge" class="pill-badge" style="display: none; text-transform: uppercase;">article</span>
+      </div>
       <span id="session-badge" class="pill-badge badge-paused">Ready</span>
     </div>
-    <div class="status-row">
-      <span class="domain-name" id="current-domain">Detecting tab...</span>
-      <button class="btn btn-sm btn-danger" id="ignore-domain-btn" title="Add this domain to privacy blocklist">Ignore</button>
+
+    <!-- Page Title & Full Sanitized Path -->
+    <div style="margin-bottom: 8px;">
+      <div id="session-title" style="font-weight: 600; font-size: 12px; color: var(--ink); line-height: 1.35; max-height: 32px; overflow: hidden; text-overflow: ellipsis; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;">
+        Detecting active tab...
+      </div>
+      <div id="session-url" style="font-family: monospace; font-size: 10px; color: var(--ink-muted); margin-top: 2px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;" title="">
+        -
+      </div>
+    </div>
+
+    <!-- Live Timer, Coverage, Rewinds & Controls -->
+    <div style="display: flex; justify-content: space-between; align-items: flex-end; padding-top: 8px; border-top: 1px solid var(--border-subtle);">
+      <div style="display: flex; align-items: flex-end; gap: 12px;">
+        <div>
+          <span style="font-size: 9px; text-transform: uppercase; font-family: monospace; font-weight: 600; color: var(--ink-muted); display: block;">Dwell</span>
+          <span id="live-timer" style="font-family: monospace; font-size: 13px; font-weight: 700; color: var(--ink);">00:00</span>
+        </div>
+        <div>
+          <span style="font-size: 9px; text-transform: uppercase; font-family: monospace; font-weight: 600; color: var(--ink-muted); display: block;">Coverage</span>
+          <div style="display: flex; align-items: center; gap: 4px;">
+            <div style="width: 32px; height: 5px; background: #E2E8F0; border-radius: 4px; overflow: hidden;">
+              <div id="coverage-bar" style="width: 0%; height: 100%; background: var(--mastered); border-radius: 4px; transition: width 0.3s;"></div>
+            </div>
+            <span id="live-coverage" style="font-family: monospace; font-size: 12px; font-weight: 700; color: var(--mastered);">0%</span>
+          </div>
+        </div>
+        <div id="rewind-wrapper" style="display: none;">
+          <span style="font-size: 9px; text-transform: uppercase; font-family: monospace; font-weight: 600; color: var(--ink-muted); display: block;">Rewinds</span>
+          <span id="live-rewinds" style="font-family: monospace; font-size: 12px; font-weight: 700; color: #7C3AED;">0</span>
+        </div>
+      </div>
+      <button class="btn btn-sm btn-danger" id="ignore-domain-btn" title="Add this domain to privacy blocklist">Ignore Domain</button>
+    </div>
+
+    <!-- Top 4 Keywords Preview -->
+    <div id="keywords-wrapper" style="margin-top: 8px; padding-top: 6px; border-top: 1px dashed var(--border-subtle); display: none;">
+      <span style="font-size: 9px; font-family: monospace; color: var(--ink-muted); text-transform: uppercase; display: block; margin-bottom: 3px;">Edge NLP Keywords:</span>
+      <div style="display: flex; flex-wrap: wrap; gap: 4px;" id="session-keywords"></div>
     </div>
   </div>
 
-  <!-- Sync & Queue Card -->
+  <!-- Sync & Queue Card with Inline Feedback -->
   <div class="card">
     <div class="card-title">
       <span>Telemetry Buffer</span>
@@ -383,6 +422,7 @@
       <span style="font-size: 11px; color: var(--ink-body);">Batched sync (every 3m)</span>
       <button class="btn btn-sm" id="sync-now-btn">Sync Now</button>
     </div>
+    <div id="sync-feedback" style="display: none; margin-top: 6px; font-size: 11px; padding: 6px 8px; border-radius: 6px; line-height: 1.35;"></div>
   </div>
 
   <!-- Extension Token Connection Card -->

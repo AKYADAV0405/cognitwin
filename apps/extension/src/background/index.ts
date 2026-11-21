@@ -240,7 +240,24 @@ async function handleIncomingTelemetry(event: RawTelemetryEvent): Promise<void> 
   }
 }
 
-async function flushEventQueue(_reason: string): Promise<{ success: boolean; count: number }> {
+export interface FlushResult {
+  success: boolean;
+  count: number;
+  message?: string;
+  error?: string;
+}
+
+async function flushEventQueue(_reason: string): Promise<FlushResult> {
+  // 1. First trigger snapshot on active tab to capture in-progress session
+  try {
+    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (tabs.length && tabs[0].id) {
+      await chrome.tabs.sendMessage(tabs[0].id, { type: "REQUEST_SESSION_FLUSH" }).catch(() => {});
+    }
+  } catch {
+    // Ignore tab query errors
+  }
+
   const storage = await chrome.storage.local.get([
     "eventQueue",
     "extensionToken",
@@ -253,12 +270,11 @@ async function flushEventQueue(_reason: string): Promise<{ success: boolean; cou
   const apiUrl: string = storage.apiUrl || "http://localhost:8000";
 
   if (!queue.length) {
-    return { success: true, count: 0 };
+    return { success: true, count: 0, message: "Queue is empty. No sessions to sync." };
   }
 
   if (!token) {
-    // If no token, keep events in offline queue
-    return { success: false, count: 0 };
+    return { success: false, count: 0, error: "No Bearer token configured. Please connect your token below." };
   }
 
   // Drain in chunks of up to 20 events
@@ -275,24 +291,32 @@ async function flushEventQueue(_reason: string): Promise<{ success: boolean; cou
     });
 
     if (res.status === 202) {
-      // Success: remove sent batch from queue
+      const data = await res.json().catch(() => ({ ingested: batch.length, duplicates_ignored: 0 }));
       const remainingQueue = queue.slice(batch.length);
       await chrome.storage.local.set({
         eventQueue: remainingQueue,
         authError: false,
       });
-      return { success: true, count: batch.length };
+      return {
+        success: true,
+        count: data.ingested,
+        message: `Synced ${data.ingested} session(s) successfully (${data.duplicates_ignored} deduplicated).`,
+      };
     }
 
     if (res.status === 401) {
-      // Token revoked or invalid: pause flushing without dropping queue
       await chrome.storage.local.set({ authError: true });
-      return { success: false, count: 0 };
+      return { success: false, count: 0, error: "401 Unauthorized: Invalid or revoked Bearer token." };
     }
 
-    return { success: false, count: 0 };
+    if (res.status === 422) {
+      const err = await res.json().catch(() => ({}));
+      return { success: false, count: 0, error: `422 Validation Error: ${JSON.stringify(err.detail || err)}` };
+    }
+
+    return { success: false, count: 0, error: `HTTP ${res.status}: ${res.statusText}` };
   } catch {
     // Network offline / server down: keep events in local storage for retry
-    return { success: false, count: 0 };
+    return { success: false, count: 0, error: `API unreachable at ${apiUrl}. Is backend running?` };
   }
 }

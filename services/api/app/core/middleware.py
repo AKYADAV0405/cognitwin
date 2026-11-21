@@ -31,8 +31,11 @@ class CSRFProtectionMiddleware(BaseHTTPMiddleware):
             origin = request.headers.get("origin")
             referer = request.headers.get("referer")
 
-            # Check origin if present
-            if origin and not any(origin.startswith(allowed) for allowed in self.ALLOWED_ORIGINS):
+            # Check origin if present (allow permitted web origins and Chrome extension origins)
+            if origin and not (
+                any(origin.startswith(allowed) for allowed in self.ALLOWED_ORIGINS)
+                or origin.startswith("chrome-extension://")
+            ):
                 return JSONResponse(
                     status_code=403,
                     content={"detail": "CSRF validation failed: Origin header not permitted."},
@@ -42,7 +45,10 @@ class CSRFProtectionMiddleware(BaseHTTPMiddleware):
             if (
                 not origin
                 and referer
-                and not any(referer.startswith(allowed) for allowed in self.ALLOWED_ORIGINS)
+                and not (
+                    any(referer.startswith(allowed) for allowed in self.ALLOWED_ORIGINS)
+                    or referer.startswith("chrome-extension://")
+                )
             ):
                 return JSONResponse(
                     status_code=403,

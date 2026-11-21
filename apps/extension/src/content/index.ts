@@ -288,11 +288,24 @@ setInterval(tick, 1000);
 
 /**
  * Flushes the current session to the background worker.
+ * Returns true if session payload was sent.
  */
-function flushSession(reason: string): void {
-  if (!currentSession || activeDwellSeconds < 15 || !isStudyModeOn) {
-    return;
+function flushSession(reason: string, force: boolean = false): boolean {
+  if (!currentSession || !isStudyModeOn) {
+    return false;
   }
+
+  // If dwell is below 15s and force is not set, skip
+  if (activeDwellSeconds < 15 && !force) {
+    return false;
+  }
+
+  if (activeDwellSeconds === 0) {
+    return false;
+  }
+
+  // Clamped dwell for backend Pydantic ge=15 validation
+  const dwellToSend = Math.max(15, activeDwellSeconds);
 
   let coveragePct = 0.0;
   if (currentSession.mediaType === "video") {
@@ -303,7 +316,7 @@ function flushSession(reason: string): void {
   } else {
     coveragePct = calculateArticleCoverage(
       currentSession.viewedWords,
-      activeDwellSeconds,
+      dwellToSend,
       currentSession.totalWords
     );
   }
@@ -319,7 +332,7 @@ function flushSession(reason: string): void {
     source_url: currentSession.sourceUrl,
     page_title: currentSession.pageTitle,
     media_type: currentSession.mediaType,
-    active_dwell_seconds: activeDwellSeconds,
+    active_dwell_seconds: dwellToSend,
     estimated_coverage_pct: coveragePct,
     viewed_headings: currentSession.viewedHeadings,
     top_keywords: currentSession.topKeywords,
@@ -343,8 +356,9 @@ function flushSession(reason: string): void {
       reason,
       event: eventPayload,
     });
+    return true;
   } catch {
-    // Ignore runtime disconnected errors
+    return false;
   }
 }
 
@@ -380,14 +394,54 @@ window.addEventListener("yt-navigate-finish", () => {
   initContentTracker();
 });
 
-// Listen for messages from background script
-chrome.runtime.onMessage.addListener((message) => {
+// Listen for messages from background script & popup
+chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message.type === "STUDY_MODE_CHANGED") {
     isStudyModeOn = message.studyMode === true;
     if (!isStudyModeOn) {
-      flushSession("study_mode_off");
+      flushSession("study_mode_off", true);
     }
   }
+
+  if (message.type === "GET_PAGE_SESSION_STATE") {
+    let coveragePct = 0.0;
+    if (currentSession) {
+      if (currentSession.mediaType === "video") {
+        coveragePct = calculateVideoCoverage(
+          currentSession.watchedBuckets.size,
+          currentSession.videoDurationSec || 1
+        );
+      } else {
+        coveragePct = calculateArticleCoverage(
+          currentSession.viewedWords,
+          activeDwellSeconds,
+          currentSession.totalWords
+        );
+      }
+    }
+
+    sendResponse({
+      hasSession: !!currentSession,
+      isTracking: isStudyModeOn && !!currentSession,
+      pageTitle: currentSession?.pageTitle || document.title,
+      sourceUrl: currentSession?.sourceUrl || window.location.href,
+      sourceDomain: currentSession?.sourceDomain || window.location.hostname,
+      mediaType: currentSession?.mediaType || "article",
+      activeDwellSeconds,
+      estimatedCoveragePct: coveragePct,
+      topKeywords: currentSession?.topKeywords?.slice(0, 4) || [],
+      rewindCount: currentSession?.rewindCount || 0,
+    });
+    return true;
+  }
+
+  if (message.type === "REQUEST_SESSION_FLUSH") {
+    const flushed = flushSession("manual_sync_now", true);
+    sendResponse({ flushed });
+    return true;
+  }
+
+  return false;
 });
 
 // Run tracker

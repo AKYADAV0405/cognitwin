@@ -11,6 +11,7 @@ import {
   Key,
   Copy,
   Check,
+  Download,
   RefreshCw,
   Trash2,
   FileText,
@@ -305,14 +306,24 @@ export const DashboardPage: React.FC = () => {
               <p className="text-xs text-ink-body max-w-xl leading-relaxed">
                 Tokens are stored as SHA-256 hashes on the server. When generated, copy the token and paste it directly into your Chrome Extension popup.
               </p>
-              <button
-                onClick={generateToken}
-                disabled={tokenLoading}
-                className="inline-flex items-center space-x-1.5 px-4 py-2 rounded-md bg-ink text-canvas hover:bg-ink-body text-xs font-semibold transition-colors disabled:opacity-50 shrink-0"
-              >
-                <Key className="w-3.5 h-3.5" />
-                <span>{tokenLoading ? "Generating..." : hasActiveToken ? "Regenerate Token" : "Generate Extension Token"}</span>
-              </button>
+              <div className="flex items-center gap-2 shrink-0">
+                <a
+                  href="/downloads/cognitwin-extension.zip"
+                  download="cognitwin-extension.zip"
+                  className="inline-flex items-center space-x-1.5 px-3 py-2 rounded-md border border-border-subtle bg-surface hover:bg-surface-subtle text-xs font-medium text-ink transition-colors"
+                >
+                  <Download className="w-3.5 h-3.5 text-cobalt" />
+                  <span>Download Extension (.zip)</span>
+                </a>
+                <button
+                  onClick={generateToken}
+                  disabled={tokenLoading}
+                  className="inline-flex items-center space-x-1.5 px-4 py-2 rounded-md bg-ink text-canvas hover:bg-ink-body text-xs font-semibold transition-colors disabled:opacity-50"
+                >
+                  <Key className="w-3.5 h-3.5" />
+                  <span>{tokenLoading ? "Generating..." : hasActiveToken ? "Regenerate Token" : "Generate Extension Token"}</span>
+                </button>
+              </div>
             </div>
           )}
 

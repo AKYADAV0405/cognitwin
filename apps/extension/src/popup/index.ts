@@ -1,19 +1,57 @@
 import { sanitizeUrl } from "../utils/url";
 import { isBlockedDomain } from "../utils/blocklist";
 
+interface TabSessionState {
+  hasSession: boolean;
+  isTracking: boolean;
+  pageTitle: string;
+  sourceUrl: string;
+  sourceDomain: string;
+  mediaType: "article" | "docs" | "video" | "pdf";
+  activeDwellSeconds: number;
+  estimatedCoveragePct: number;
+  topKeywords: string[];
+  rewindCount: number;
+}
+
+interface FlushResult {
+  success: boolean;
+  count: number;
+  message?: string;
+  error?: string;
+}
+
 document.addEventListener("DOMContentLoaded", async () => {
   const toggle = document.getElementById("study-mode-toggle") as HTMLInputElement;
   const modeText = document.getElementById("mode-text");
   const authAlert = document.getElementById("auth-alert");
-  const currentDomainEl = document.getElementById("current-domain");
+
+  // Upgraded session elements
+  const sessionTitleEl = document.getElementById("session-title");
+  const sessionUrlEl = document.getElementById("session-url");
   const sessionBadge = document.getElementById("session-badge");
+  const mediaBadge = document.getElementById("media-badge");
+  const liveTimerEl = document.getElementById("live-timer");
+  const liveCoverageEl = document.getElementById("live-coverage");
+  const coverageBarEl = document.getElementById("coverage-bar");
+  const rewindWrapper = document.getElementById("rewind-wrapper");
+  const liveRewindsEl = document.getElementById("live-rewinds");
+  const keywordsWrapper = document.getElementById("keywords-wrapper");
+  const sessionKeywordsEl = document.getElementById("session-keywords");
   const ignoreDomainBtn = document.getElementById("ignore-domain-btn");
+
+  // Buffer & Sync elements
   const queueCountEl = document.getElementById("queue-count");
-  const syncNowBtn = document.getElementById("sync-now-btn");
+  const syncNowBtn = document.getElementById("sync-now-btn") as HTMLButtonElement;
+  const syncFeedbackEl = document.getElementById("sync-feedback");
+
+  // Auth elements
   const tokenStatusEl = document.getElementById("token-status");
   const tokenInput = document.getElementById("token-input") as HTMLInputElement;
   const saveTokenBtn = document.getElementById("save-token-btn");
   const clearTokenBtn = document.getElementById("clear-token-btn");
+
+  // Blocklist elements
   const toggleBlocklist = document.getElementById("toggle-blocklist");
   const blocklistPanel = document.getElementById("blocklist-panel");
   const blocklistCountEl = document.getElementById("blocklist-count");
@@ -22,46 +60,181 @@ document.addEventListener("DOMContentLoaded", async () => {
   const addDomainBtn = document.getElementById("add-domain-btn");
 
   let activeTabDomain = "";
+  let activeTabId: number | null = null;
+  let activeTabUrl = "";
+  let localDwellSeconds = 0;
+  let isTrackingActive = false;
+
+  function formatTime(seconds: number): string {
+    const mins = Math.floor(seconds / 60);
+    const secs = seconds % 60;
+    return `${String(mins).padStart(2, "0")}:${String(secs).padStart(2, "0")}`;
+  }
 
   // 1. Fetch background state
   const state = await chrome.runtime.sendMessage({ type: "GET_STATE" });
   updateStateUI(state);
 
-  // 2. Query active browser tab
-  try {
-    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (tabs.length && tabs[0].url) {
-      const urlInfo = sanitizeUrl(tabs[0].url);
+  // 2. Query active browser tab and query content script session state
+  async function pollActiveTab(): Promise<void> {
+    try {
+      const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
+      if (!tabs.length || !tabs[0].url) {
+        if (sessionTitleEl) sessionTitleEl.textContent = "No active web page";
+        return;
+      }
+
+      const activeTab = tabs[0];
+      activeTabId = activeTab.id || null;
+      activeTabUrl = activeTab.url || "";
+      const urlInfo = sanitizeUrl(activeTabUrl);
       activeTabDomain = urlInfo.domain;
-      if (currentDomainEl) {
-        currentDomainEl.textContent = activeTabDomain || "New Tab";
+
+      // Extract full sanitized path without protocol
+      let displayPath = urlInfo.sanitizedUrl.replace(/^https?:\/\//i, "");
+      if (displayPath.length > 55) {
+        displayPath = displayPath.slice(0, 52) + "...";
+      }
+
+      if (sessionUrlEl) {
+        sessionUrlEl.textContent = displayPath || urlInfo.domain;
+        sessionUrlEl.title = urlInfo.sanitizedUrl;
       }
 
       const isBlocked = isBlockedDomain(activeTabDomain, state.blocklist);
-      if (sessionBadge) {
-        if (urlInfo.isIgnored) {
+
+      if (urlInfo.isIgnored) {
+        if (sessionBadge) {
           sessionBadge.textContent = "Ignored";
           sessionBadge.className = "pill-badge badge-ignored";
-        } else if (isBlocked) {
+        }
+        if (sessionTitleEl) sessionTitleEl.textContent = activeTab.title || urlInfo.domain;
+        return;
+      }
+
+      if (isBlocked) {
+        if (sessionBadge) {
           sessionBadge.textContent = "Blocked";
           sessionBadge.className = "pill-badge badge-ignored";
-        } else if (state.studyMode) {
-          sessionBadge.textContent = "Tracking";
+        }
+        if (sessionTitleEl) sessionTitleEl.textContent = activeTab.title || urlInfo.domain;
+        return;
+      }
+
+      // Query content script for live active telemetry
+      if (activeTabId) {
+        try {
+          const tabSession: TabSessionState = await chrome.tabs.sendMessage(activeTabId, {
+            type: "GET_PAGE_SESSION_STATE",
+          });
+
+          if (tabSession) {
+            isTrackingActive = tabSession.isTracking;
+            localDwellSeconds = tabSession.activeDwellSeconds;
+
+            if (sessionTitleEl) {
+              sessionTitleEl.textContent = tabSession.pageTitle || activeTab.title || urlInfo.domain;
+            }
+
+            if (mediaBadge) {
+              mediaBadge.style.display = "inline-block";
+              mediaBadge.textContent = tabSession.mediaType;
+              if (tabSession.mediaType === "video") {
+                mediaBadge.className = "pill-badge";
+                mediaBadge.style.background = "#F3E8FF";
+                mediaBadge.style.color = "#7C3AED";
+              } else if (tabSession.mediaType === "docs") {
+                mediaBadge.className = "pill-badge";
+                mediaBadge.style.background = "#EFF6FF";
+                mediaBadge.style.color = "#1D4ED8";
+              } else {
+                mediaBadge.className = "pill-badge";
+                mediaBadge.style.background = "#ECFDF5";
+                mediaBadge.style.color = "#059669";
+              }
+            }
+
+            if (liveTimerEl) {
+              liveTimerEl.textContent = formatTime(tabSession.activeDwellSeconds);
+            }
+
+            const covPct = Math.round(tabSession.estimatedCoveragePct * 100);
+            if (liveCoverageEl) {
+              liveCoverageEl.textContent = `${covPct}%`;
+            }
+            if (coverageBarEl) {
+              coverageBarEl.style.width = `${covPct}%`;
+            }
+
+            if (tabSession.mediaType === "video" && rewindWrapper && liveRewindsEl) {
+              rewindWrapper.style.display = "block";
+              liveRewindsEl.textContent = String(tabSession.rewindCount);
+            } else if (rewindWrapper) {
+              rewindWrapper.style.display = "none";
+            }
+
+            // Top 4 Keywords preview
+            if (tabSession.topKeywords && tabSession.topKeywords.length > 0 && keywordsWrapper && sessionKeywordsEl) {
+              keywordsWrapper.style.display = "block";
+              sessionKeywordsEl.innerHTML = "";
+              tabSession.topKeywords.slice(0, 4).forEach((kw) => {
+                const tag = document.createElement("span");
+                tag.style.background = "var(--surface)";
+                tag.style.border = "1px solid var(--border-subtle)";
+                tag.style.borderRadius = "4px";
+                tag.style.padding = "1px 5px";
+                tag.style.fontSize = "10px";
+                tag.style.fontFamily = "monospace";
+                tag.style.color = "var(--ink-body)";
+                tag.textContent = kw;
+                sessionKeywordsEl.appendChild(tag);
+              });
+            }
+          }
+        } catch {
+          // Content script may not be loaded or page is static
+          if (sessionTitleEl) sessionTitleEl.textContent = activeTab.title || urlInfo.domain;
+        }
+      }
+
+      if (sessionBadge) {
+        if (state.studyMode) {
+          sessionBadge.textContent = isTrackingActive ? "Tracking" : "Active";
           sessionBadge.className = "pill-badge badge-tracking";
         } else {
           sessionBadge.textContent = "Paused";
           sessionBadge.className = "pill-badge badge-paused";
         }
       }
+    } catch {
+      if (sessionTitleEl) sessionTitleEl.textContent = "No active tab";
     }
-  } catch {
-    if (currentDomainEl) currentDomainEl.textContent = "No active tab";
   }
+
+  await pollActiveTab();
+
+  // Tick dwell timer locally while popup is open
+  setInterval(() => {
+    if (state.studyMode && isTrackingActive) {
+      localDwellSeconds += 1;
+      if (liveTimerEl) {
+        liveTimerEl.textContent = formatTime(localDwellSeconds);
+      }
+    }
+  }, 1000);
 
   // Study Mode Toggle Listener
   toggle?.addEventListener("change", async () => {
     const res = await chrome.runtime.sendMessage({ type: "TOGGLE_STUDY_MODE" });
-    const isNowOn = res.studyMode === true;
+    state.studyMode = res.studyMode === true;
+    updateModeUI(state.studyMode);
+    await pollActiveTab();
+    const updatedState = await chrome.runtime.sendMessage({ type: "GET_STATE" });
+    updateStateUI(updatedState);
+  });
+
+  function updateModeUI(isNowOn: boolean) {
+    if (toggle) toggle.checked = isNowOn;
     if (modeText) {
       modeText.textContent = isNowOn ? "ON" : "OFF";
       modeText.className = isNowOn ? "mode-label on" : "mode-label";
@@ -70,7 +243,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       sessionBadge.textContent = isNowOn ? "Tracking" : "Paused";
       sessionBadge.className = isNowOn ? "pill-badge badge-tracking" : "pill-badge badge-paused";
     }
-  });
+  }
 
   // Ignore current domain (1-click block)
   ignoreDomainBtn?.addEventListener("click", async () => {
@@ -103,13 +276,42 @@ document.addEventListener("DOMContentLoaded", async () => {
     updateStateUI(updated);
   });
 
-  // Sync Now
+  // Sync Now with active session snapshot & feedback
   syncNowBtn?.addEventListener("click", async () => {
-    if (syncNowBtn) syncNowBtn.textContent = "Syncing...";
-    await chrome.runtime.sendMessage({ type: "FLUSH_NOW" });
-    const updated = await chrome.runtime.sendMessage({ type: "GET_STATE" });
-    updateStateUI(updated);
-    if (syncNowBtn) syncNowBtn.textContent = "Sync Now";
+    if (syncNowBtn) {
+      syncNowBtn.disabled = true;
+      syncNowBtn.textContent = "Syncing...";
+    }
+    if (syncFeedbackEl) {
+      syncFeedbackEl.style.display = "none";
+    }
+
+    try {
+      const flushResult: FlushResult = await chrome.runtime.sendMessage({ type: "FLUSH_NOW" });
+
+      if (syncFeedbackEl) {
+        syncFeedbackEl.style.display = "block";
+        if (flushResult.success) {
+          syncFeedbackEl.style.background = "var(--mastered-bg)";
+          syncFeedbackEl.style.border = "1px solid var(--mastered-border)";
+          syncFeedbackEl.style.color = "var(--mastered)";
+          syncFeedbackEl.textContent = flushResult.message || `Synced ${flushResult.count} session(s) successfully.`;
+        } else {
+          syncFeedbackEl.style.background = "var(--risk-bg)";
+          syncFeedbackEl.style.border = "1px solid var(--risk-border)";
+          syncFeedbackEl.style.color = "var(--risk)";
+          syncFeedbackEl.textContent = flushResult.error || "Sync failed.";
+        }
+      }
+
+      const updated = await chrome.runtime.sendMessage({ type: "GET_STATE" });
+      updateStateUI(updated);
+    } finally {
+      if (syncNowBtn) {
+        syncNowBtn.disabled = false;
+        syncNowBtn.textContent = "Sync Now";
+      }
+    }
   });
 
   // Toggle Blocklist Accordion
@@ -138,11 +340,7 @@ document.addEventListener("DOMContentLoaded", async () => {
     queueCount: number;
     blocklist: string[];
   }) {
-    if (toggle) toggle.checked = s.studyMode;
-    if (modeText) {
-      modeText.textContent = s.studyMode ? "ON" : "OFF";
-      modeText.className = s.studyMode ? "mode-label on" : "mode-label";
-    }
+    updateModeUI(s.studyMode);
 
     if (authAlert) {
       authAlert.className = s.authError ? "alert-banner visible" : "alert-banner";
