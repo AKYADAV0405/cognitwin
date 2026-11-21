@@ -13,9 +13,11 @@ from app.core.limiter import limiter
 from app.core.middleware import CSRFProtectionMiddleware, SecurityHeadersMiddleware
 from app.routers import (
     auth_router,
+    extension_auth_router,
     health_router,
     research_router,
     student_router,
+    telemetry_router,
 )
 
 
@@ -76,6 +78,8 @@ app.add_middleware(
 # Register API v1 routers
 app.include_router(health_router, prefix=settings.API_V1_PREFIX)
 app.include_router(auth_router, prefix=settings.API_V1_PREFIX)
+app.include_router(extension_auth_router, prefix=settings.API_V1_PREFIX)
+app.include_router(telemetry_router, prefix=settings.API_V1_PREFIX)
 app.include_router(student_router, prefix=settings.API_V1_PREFIX)
 app.include_router(research_router, prefix=settings.API_V1_PREFIX)
 

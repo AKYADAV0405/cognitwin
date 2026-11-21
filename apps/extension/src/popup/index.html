@@ -2,71 +2,425 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Cognitwin Study Mode</title>
+  <meta name="viewport" content="width=340, initial-scale=1.0">
+  <title>Cognitwin Study Engine</title>
   <style>
-    body {
-      width: 320px;
-      margin: 0;
-      padding: 16px;
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-      background-color: #FFFFFF;
-      color: #0F172A;
+    :root {
+      --canvas: #FFFFFF;
+      --surface: #F4F6F8;
+      --surface-subtle: #F8FAFC;
+      --ink: #0F172A;
+      --ink-body: #334155;
+      --ink-muted: #64748B;
+      --border-subtle: #E2E8F0;
+      --border-focus: #94A3B8;
+      --cobalt: #1D4ED8;
+      --mastered: #059669;
+      --mastered-bg: #ECFDF5;
+      --mastered-border: #A7F3D0;
+      --risk: #DC2626;
+      --risk-bg: #FEF2F2;
+      --risk-border: #FECACA;
+      --fading: #D97706;
+      --fading-bg: #FFFBEB;
+      --fading-border: #FDE68A;
+      --radius: 8px;
     }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      width: 340px;
+      height: 460px;
+      margin: 0;
+      padding: 14px;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+      background-color: var(--canvas);
+      color: var(--ink);
+      overflow-y: auto;
+      font-size: 13px;
+    }
+
+    /* Scrollbar */
+    body::-webkit-scrollbar {
+      width: 5px;
+    }
+    body::-webkit-scrollbar-thumb {
+      background: #CBD5E1;
+      border-radius: 4px;
+    }
+
+    /* Header */
     .header {
       display: flex;
       justify-content: space-between;
       align-items: center;
-      border-bottom: 1px solid #E2E8F0;
       padding-bottom: 12px;
-      margin-bottom: 16px;
-    }
-    .title {
-      font-size: 14px;
-      font-weight: 600;
-    }
-    .badge {
-      font-size: 10px;
-      font-family: monospace;
-      padding: 2px 6px;
-      border-radius: 4px;
-      background: #F1F5F9;
-      color: #475569;
-      border: 1px solid #E2E8F0;
-    }
-    .card {
-      background: #F8FAFC;
-      border: 1px solid #E2E8F0;
-      border-radius: 8px;
-      padding: 12px;
+      border-bottom: 1px solid var(--border-subtle);
       margin-bottom: 12px;
     }
-    .toggle-row {
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .logo-badge {
+      width: 22px;
+      height: 22px;
+      background: var(--ink);
+      color: var(--canvas);
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 700;
+      font-size: 11px;
+    }
+
+    .brand-title {
+      font-size: 14px;
+      font-weight: 700;
+      letter-spacing: -0.01em;
+    }
+
+    /* Study Mode Toggle Switch */
+    .toggle-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .switch {
+      position: relative;
+      display: inline-block;
+      width: 40px;
+      height: 22px;
+    }
+
+    .switch input {
+      opacity: 0;
+      width: 0;
+      height: 0;
+    }
+
+    .slider {
+      position: absolute;
+      cursor: pointer;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: #CBD5E1;
+      transition: 0.2s ease-in-out;
+      border-radius: 22px;
+    }
+
+    .slider:before {
+      position: absolute;
+      content: "";
+      height: 16px;
+      width: 16px;
+      left: 3px;
+      bottom: 3px;
+      background-color: white;
+      transition: 0.2s ease-in-out;
+      border-radius: 50%;
+      box-shadow: 0 1px 2px rgba(0,0,0,0.15);
+    }
+
+    input:checked + .slider {
+      background-color: var(--mastered);
+    }
+
+    input:checked + .slider:before {
+      transform: translateX(18px);
+    }
+
+    .mode-label {
+      font-size: 11px;
+      font-weight: 600;
+      color: var(--ink-muted);
+      letter-spacing: 0.02em;
+    }
+
+    .mode-label.on {
+      color: var(--mastered);
+    }
+
+    /* Cards */
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border-subtle);
+      border-radius: var(--radius);
+      padding: 10px 12px;
+      margin-bottom: 10px;
+    }
+
+    .card-title {
+      font-size: 11px;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--ink-muted);
+      margin-bottom: 6px;
       display: flex;
       justify-content: space-between;
       align-items: center;
     }
-    .status-text {
-      font-size: 12px;
-      color: #64748B;
+
+    /* Alert Banner */
+    .alert-banner {
+      display: none;
+      background: var(--fading-bg);
+      border: 1px solid var(--fading-border);
+      color: var(--fading);
+      padding: 8px 10px;
+      border-radius: var(--radius);
+      font-size: 11px;
+      margin-bottom: 10px;
+      line-height: 1.4;
     }
-    .status-active {
-      color: #059669;
+
+    .alert-banner.visible {
+      display: block;
+    }
+
+    /* Status Row */
+    .status-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 4px;
+    }
+
+    .domain-name {
       font-weight: 600;
+      color: var(--ink);
+      font-size: 12px;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      max-width: 180px;
+    }
+
+    .pill-badge {
+      font-size: 10px;
+      padding: 2px 6px;
+      border-radius: 4px;
+      font-weight: 600;
+      letter-spacing: 0.02em;
+    }
+
+    .badge-tracking {
+      background: var(--mastered-bg);
+      color: var(--mastered);
+      border: 1px solid var(--mastered-border);
+    }
+
+    .badge-paused {
+      background: #F1F5F9;
+      color: var(--ink-muted);
+      border: 1px solid var(--border-subtle);
+    }
+
+    .badge-ignored {
+      background: var(--risk-bg);
+      color: var(--risk);
+      border: 1px solid var(--risk-border);
+    }
+
+    /* Buttons */
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      padding: 6px 10px;
+      font-size: 11px;
+      font-weight: 600;
+      border-radius: 6px;
+      cursor: pointer;
+      border: 1px solid var(--border-subtle);
+      background: var(--canvas);
+      color: var(--ink-body);
+      transition: background 0.15s;
+    }
+
+    .btn:hover {
+      background: #E2E8F0;
+    }
+
+    .btn-primary {
+      background: var(--ink);
+      color: var(--canvas);
+      border-color: var(--ink);
+    }
+
+    .btn-primary:hover {
+      background: #1E293B;
+    }
+
+    .btn-sm {
+      padding: 3px 8px;
+      font-size: 10px;
+    }
+
+    .btn-danger {
+      color: var(--risk);
+      border-color: var(--risk-border);
+    }
+
+    .btn-danger:hover {
+      background: var(--risk-bg);
+    }
+
+    /* Inputs */
+    .input-field {
+      width: 100%;
+      padding: 6px 8px;
+      font-size: 11px;
+      font-family: monospace;
+      border: 1px solid var(--border-subtle);
+      border-radius: 6px;
+      background: var(--canvas);
+      color: var(--ink);
+      outline: none;
+      margin-bottom: 6px;
+    }
+
+    .input-field:focus {
+      border-color: var(--border-focus);
+    }
+
+    /* Blocklist list */
+    .blocklist-container {
+      max-height: 80px;
+      overflow-y: auto;
+      border: 1px solid var(--border-subtle);
+      border-radius: 6px;
+      background: var(--canvas);
+      margin-top: 6px;
+      padding: 4px 6px;
+    }
+
+    .blocklist-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      font-size: 10px;
+      font-family: monospace;
+      padding: 2px 0;
+      border-bottom: 1px solid #F1F5F9;
+    }
+
+    .blocklist-item:last-child {
+      border-bottom: none;
+    }
+
+    .remove-domain {
+      cursor: pointer;
+      color: var(--risk);
+      font-weight: bold;
+      padding: 0 4px;
+    }
+
+    .footer {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-top: 8px;
+      font-size: 10px;
+      color: var(--ink-muted);
     }
   </style>
 </head>
 <body>
+  <!-- Header with Brand and Study Mode Pill Toggle -->
   <div class="header">
-    <span class="title">Cognitwin Study Mode</span>
-    <span class="badge">v0.1.0</span>
-  </div>
-  <div class="card">
-    <div class="toggle-row">
-      <span class="status-text" id="mode-label">Study Mode: OFF</span>
-      <button id="toggle-btn" style="padding: 6px 12px; font-size: 12px; border-radius: 6px; cursor: pointer; border: 1px solid #CBD5E1; background: #0F172A; color: white;">Toggle</button>
+    <div class="brand">
+      <div class="logo-badge">C</div>
+      <span class="brand-title">Cognitwin</span>
+    </div>
+    <div class="toggle-wrapper">
+      <span class="mode-label" id="mode-text">OFF</span>
+      <label class="switch">
+        <input type="checkbox" id="study-mode-toggle">
+        <span class="slider"></span>
+      </label>
     </div>
   </div>
+
+  <!-- Reconnect Warning Banner -->
+  <div class="alert-banner" id="auth-alert">
+    <strong>Authentication Error</strong><br>
+    Extension Bearer token is invalid or expired. Please reconnect in your Cognitwin Dashboard.
+  </div>
+
+  <!-- Live Session Card -->
+  <div class="card">
+    <div class="card-title">
+      <span>Active Session</span>
+      <span id="session-badge" class="pill-badge badge-paused">Ready</span>
+    </div>
+    <div class="status-row">
+      <span class="domain-name" id="current-domain">Detecting tab...</span>
+      <button class="btn btn-sm btn-danger" id="ignore-domain-btn" title="Add this domain to privacy blocklist">Ignore</button>
+    </div>
+  </div>
+
+  <!-- Sync & Queue Card -->
+  <div class="card">
+    <div class="card-title">
+      <span>Telemetry Buffer</span>
+      <span id="queue-count" style="font-family: monospace; font-size: 10px; color: var(--ink-muted);">0 queued</span>
+    </div>
+    <div style="display: flex; justify-content: space-between; align-items: center;">
+      <span style="font-size: 11px; color: var(--ink-body);">Batched sync (every 3m)</span>
+      <button class="btn btn-sm" id="sync-now-btn">Sync Now</button>
+    </div>
+  </div>
+
+  <!-- Extension Token Connection Card -->
+  <div class="card">
+    <div class="card-title">
+      <span>API Connection</span>
+      <span id="token-status" class="pill-badge badge-paused">Disconnected</span>
+    </div>
+    <div id="token-connect-section">
+      <input type="password" id="token-input" class="input-field" placeholder="Paste Bearer token (cgt_...)">
+      <div style="display: flex; gap: 6px;">
+        <button class="btn btn-sm btn-primary" id="save-token-btn" style="flex: 1;">Connect</button>
+        <button class="btn btn-sm" id="clear-token-btn" style="display: none;">Disconnect</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Privacy Blocklist Accordion -->
+  <div class="card">
+    <div class="card-title" id="toggle-blocklist" style="cursor: pointer;">
+      <span>Privacy Blocklist (<span id="blocklist-count">17</span>)</span>
+      <span id="blocklist-arrow">&#9662;</span>
+    </div>
+    <div id="blocklist-panel" style="display: none;">
+      <div style="display: flex; gap: 4px; margin-top: 4px;">
+        <input type="text" id="new-domain-input" class="input-field" placeholder="e.g. reddit.com" style="margin-bottom: 0;">
+        <button class="btn btn-sm btn-primary" id="add-domain-btn">Add</button>
+      </div>
+      <div class="blocklist-container" id="blocklist-items"></div>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <div class="footer">
+    <span>Zero Body Text Transmitted</span>
+    <span style="font-family: monospace;">v0.1.0-mv3</span>
+  </div>
+
   <script type="module" src="./index.ts"></script>
 </body>
 </html>

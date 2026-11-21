@@ -106,7 +106,7 @@ Every service and application has strictly bounded responsibilities. Do not mix 
 
 ```
 [x] Phase 1: Skeleton, DB container, path-filtered CI, linting, health checks passing.
-[ ] Phase 2: Landing page matches Stitch design; Auth + RBAC verified via API & browser tests.
+[x] Phase 2: Landing page matches Stitch design; Auth + RBAC verified via API & browser tests.
 [ ] Phase 3: Manifest V3 extension captures active focus, respects blocklist, syncs batched events.
 [ ] Phase 4: Concept graph seeded, URL mapper working, in-app Quick Check quiz records attempts.
 [ ] Phase 5: GNN-KT PyG service predicts mastery/decay; React Flow renders twin; Researcher view displays AUC/RMSE.

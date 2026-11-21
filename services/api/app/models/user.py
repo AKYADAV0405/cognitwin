@@ -11,6 +11,8 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from app.core.database import Base
 
 if TYPE_CHECKING:
+    from app.models.extension_token import ExtensionToken
+    from app.models.passive_exposure import PassiveExposure
     from app.models.refresh_token import RefreshToken
 
 
@@ -76,6 +78,16 @@ class User(Base):
 
     refresh_tokens: Mapped[list[RefreshToken]] = relationship(
         "RefreshToken",
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
+    extension_tokens: Mapped[list[ExtensionToken]] = relationship(
+        "ExtensionToken",
+        back_populates="user",
+        cascade="all, delete-orphan",
+    )
+    passive_exposures: Mapped[list[PassiveExposure]] = relationship(
+        "PassiveExposure",
         back_populates="user",
         cascade="all, delete-orphan",
     )

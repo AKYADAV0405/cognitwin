@@ -1,5 +1,6 @@
 import uuid
 from collections.abc import Callable
+from datetime import UTC, datetime
 
 import jwt
 from fastapi import Depends, HTTPException, Request, status
@@ -8,7 +9,8 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.database import get_db
-from app.core.security import decode_access_token
+from app.core.security import decode_access_token, hash_token
+from app.models.extension_token import ExtensionToken
 from app.models.user import User
 
 bearer_scheme = HTTPBearer(auto_error=False)
@@ -78,3 +80,42 @@ def require_role(required_role: str) -> Callable[..., User]:
         return current_user
 
     return role_checker
+
+
+async def get_current_extension_user(
+    bearer: HTTPAuthorizationCredentials | None = Depends(bearer_scheme),
+    db: AsyncSession = Depends(get_db),
+) -> tuple[User, ExtensionToken]:
+    """Validates scoped Bearer API token from Chrome extension against hashed tokens."""
+    if not bearer or not bearer.credentials:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Extension authentication required: Missing Bearer token.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    raw_token = bearer.credentials
+    token_hash_val = hash_token(raw_token)
+
+    result = await db.execute(
+        select(ExtensionToken, User)
+        .join(User, ExtensionToken.user_id == User.id)
+        .where(
+            ExtensionToken.token_hash == token_hash_val,
+            ExtensionToken.revoked_at.is_(None),
+            User.is_active.is_(True),
+        )
+    )
+    row = result.first()
+    if not row:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid or revoked extension token.",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
+    ext_token, user = row
+    ext_token.last_used_at = datetime.now(UTC)
+    await db.commit()
+
+    return user, ext_token

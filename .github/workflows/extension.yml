@@ -40,5 +40,8 @@ jobs:
       - name: Typecheck TypeScript
         run: npm run typecheck
 
+      - name: Run unit tests
+        run: npm run test
+
       - name: Build extension bundle
         run: npm run build
