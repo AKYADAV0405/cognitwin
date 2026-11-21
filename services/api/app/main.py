@@ -1,10 +1,12 @@
 from collections.abc import AsyncGenerator
 from contextlib import asynccontextmanager
+from typing import Any
 
 from fastapi import FastAPI, Request
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.responses import JSONResponse
 from slowapi.errors import RateLimitExceeded
+from sqlalchemy import inspect, text
 
 import app.models  # noqa: F401
 from app.core.config import settings
@@ -21,6 +23,30 @@ from app.routers import (
 )
 
 
+def _sync_sqlite_schema(sync_conn: Any) -> None:
+    """Auto-migrates newly added columns in local SQLite development mode."""
+    inspector = inspect(sync_conn)
+    for table_name, table in Base.metadata.tables.items():
+        if inspector.has_table(table_name):
+            existing_cols = {col["name"] for col in inspector.get_columns(table_name)}
+            for col in table.columns:
+                if col.name not in existing_cols:
+                    col_type = col.type.compile(sync_conn.dialect)
+                    default_clause = ""
+                    if not col.nullable:
+                        type_str = str(col_type).upper()
+                        if any(k in type_str for k in ("INT", "FLOAT", "NUMERIC", "BOOL")):
+                            default_clause = " DEFAULT 0"
+                        else:
+                            default_clause = " DEFAULT ''"
+                    sync_conn.execute(
+                        text(
+                            f"ALTER TABLE {table_name} ADD COLUMN {col.name} "
+                            f"{col_type}{default_clause}"
+                        )
+                    )
+
+
 @asynccontextmanager
 async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
     """Initialize database tables for local SQLite development if needed."""
@@ -28,6 +54,7 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
         try:
             async with engine.begin() as conn:
                 await conn.run_sync(Base.metadata.create_all)
+                await conn.run_sync(_sync_sqlite_schema)
         except Exception:
             pass
     yield
