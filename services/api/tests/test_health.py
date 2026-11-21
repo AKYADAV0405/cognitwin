@@ -22,12 +22,15 @@ TestAsyncSessionLocal = async_sessionmaker(
 )
 
 
-async def override_get_db() -> AsyncGenerator[AsyncSession, None]:
-    async with TestAsyncSessionLocal() as session:
-        yield session
+@pytest.fixture(autouse=True)
+async def setup_health_db() -> AsyncGenerator[None, None]:
+    async def override_get_db() -> AsyncGenerator[AsyncSession, None]:
+        async with TestAsyncSessionLocal() as session:
+            yield session
 
-
-app.dependency_overrides[get_db] = override_get_db
+    app.dependency_overrides[get_db] = override_get_db
+    yield
+    app.dependency_overrides.clear()
 
 
 @pytest.mark.asyncio

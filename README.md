@@ -105,7 +105,31 @@ npm run build
 
 ---
 
-## 4. Testing & Quality Verification
+## 4. Google OAuth 2.0 / OIDC Setup
+
+To enable Google Sign-In for local development or production:
+
+1. **Google Cloud Console**:
+   - Go to [Google Cloud Console Credentials](https://console.cloud.google.com/apis/credentials).
+   - Create a new project (e.g. `Cognitwin Dev`) or select an existing one.
+   - Configure the **OAuth Consent Screen** with User Type: **External**, scopes `openid`, `email`, `profile`.
+2. **Create OAuth 2.0 Client ID**:
+   - Application type: **Web application**.
+   - Name: `Cognitwin Web Client`.
+   - Authorized JavaScript origins: `http://localhost:5173` (Vite) and `http://localhost:8000` (FastAPI).
+   - Authorized redirect URIs: `http://localhost:8000/api/v1/auth/google/callback`.
+3. **Configure Environment Variables**:
+   - Copy Client ID and Client Secret into your `.env` file:
+     ```env
+     GOOGLE_CLIENT_ID=your-client-id.apps.googleusercontent.com
+     GOOGLE_CLIENT_SECRET=your-client-secret
+     GOOGLE_REDIRECT_URI=http://localhost:8000/api/v1/auth/google/callback
+     ```
+   *(Note: In mock/development environments without Google credentials configured, the OAuth callback endpoint gracefully creates or links mock Google accounts for integration testing).*
+
+---
+
+## 5. Testing & Quality Verification
 
 Run each component's verification suite:
 
@@ -125,7 +149,7 @@ cd services/gnn_kt && ruff check . && ruff format --check . && pytest
 
 ---
 
-## 5. Development Governance & Standards
+## 6. Development Governance & Standards
 
 - Adhere strictly to [AGENTS.md](file:///d:/digital%20twin/AGENTS.md) for phase gates, coding conventions, and Paper 2 seam restrictions.
 - All UI components must implement tokens from [docs/DESIGN_SYSTEM.md](file:///d:/digital%20twin/docs/DESIGN_SYSTEM.md).
