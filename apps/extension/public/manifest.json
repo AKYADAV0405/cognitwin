@@ -1,0 +1,24 @@
+{
+  "manifest_version": 3,
+  "name": "Cognitwin — Adaptive Cognitive Study Mode",
+  "version": "0.1.0",
+  "description": "Privacy-preserving passive study focus tracking and knowledge tracing companion.",
+  "permissions": [
+    "storage",
+    "idle",
+    "tabs",
+    "alarms"
+  ],
+  "host_permissions": [
+    "http://localhost:8000/*",
+    "http://127.0.0.1:8000/*"
+  ],
+  "action": {
+    "default_title": "Cognitwin Study Mode",
+    "default_popup": "src/popup/index.html"
+  },
+  "background": {
+    "service_worker": "background.js",
+    "type": "module"
+  }
+}
