@@ -18,11 +18,12 @@ class PassiveEventSchema(BaseModel):
     source_domain: str = Field(min_length=1, max_length=255)
     source_url: str = Field(min_length=1, max_length=256)
     page_title: str = Field(min_length=1, max_length=160)
+    meta_description: str | None = Field(default=None, max_length=220)
     media_type: Literal["article", "docs", "video", "pdf"] = "article"
     active_dwell_seconds: int = Field(ge=15, le=14400)
     estimated_coverage_pct: float = Field(ge=0.0, le=1.0)
-    viewed_headings: list[str] = Field(default_factory=list, max_length=5)
-    top_keywords: list[str] = Field(default_factory=list, max_length=10)
+    viewed_headings: list[str] = Field(default_factory=list, max_length=6)
+    top_keywords: list[str] = Field(default_factory=list, max_length=12)
     is_revisit: bool = False
     days_since_last_visit: float | None = Field(default=None, ge=0.0)
     video_metrics: VideoMetricsSchema | None = None
@@ -47,9 +48,11 @@ class PassiveEventSchema(BaseModel):
         self.started_at = started
         self.ended_at = ended
 
-        # Truncate string items in headings and keywords if necessary
-        self.viewed_headings = [h[:100] for h in self.viewed_headings[:5]]
-        self.top_keywords = [k[:64] for k in self.top_keywords[:10]]
+        # Truncate string items in headings, keywords, and meta description
+        self.viewed_headings = [h[:100] for h in self.viewed_headings[:6]]
+        self.top_keywords = [k[:64] for k in self.top_keywords[:12]]
+        if self.meta_description:
+            self.meta_description = self.meta_description[:220]
 
         return self
 
@@ -69,9 +72,12 @@ class PassiveExposureResponse(BaseModel):
     id: uuid.UUID
     client_event_id: uuid.UUID
     concept_id: uuid.UUID | None
+    session_bucket: str
     source_domain: str
     source_url: str
     page_title: str
+    meta_description: str | None = None
+    mapping_confidence: float | None = None
     media_type: str
     active_dwell_seconds: int
     estimated_coverage_pct: float

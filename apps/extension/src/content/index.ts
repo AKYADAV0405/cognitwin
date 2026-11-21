@@ -3,7 +3,12 @@ console.info("[Cognitwin] content script active on", location.hostname, location
 import { sanitizeUrl } from "../utils/url";
 import { isBlockedDomain } from "../utils/blocklist";
 import { calculateArticleCoverage } from "../utils/coverage";
-import { extractKeywords, extractHeadings, extractKeywordsFromFilename } from "../utils/nlp";
+import {
+  extractKeywords,
+  extractHeadings,
+  extractKeywordsFromFilename,
+  cleanPageTitle,
+} from "../utils/nlp";
 import { calculateVideoCoverage, isRewindSeek, getBucketIndex } from "../utils/video";
 
 interface ContentSession {
@@ -11,6 +16,7 @@ interface ContentSession {
   sourceUrl: string;
   sourceDomain: string;
   pageTitle: string;
+  metaDescription?: string | null;
   mediaType: "article" | "docs" | "video" | "pdf";
   startedAt: string;
   totalWords: number;
@@ -43,6 +49,45 @@ function generateUUID(): string {
     const v = c === "x" ? r : (r & 0x3) | 0x8;
     return v.toString(16);
   });
+}
+
+function extractMetaDescription(): string | null {
+  try {
+    const meta = document.querySelector(
+      'meta[name="description"], meta[property="og:description"], meta[name="twitter:description"]'
+    ) as HTMLMetaElement | null;
+    if (meta && meta.content) {
+      const clean = meta.content.replace(/\s+/g, " ").trim();
+      if (clean) return clean.slice(0, 200);
+    }
+  } catch {
+    // Ignore DOM query errors
+  }
+  return null;
+}
+
+function extractYouTubeDescription(channelName: string, chapterTitles: string[]): string | null {
+  try {
+    const meta = document.querySelector('meta[name="description"]') as HTMLMetaElement | null;
+    if (meta && meta.content) {
+      const clean = meta.content.replace(/\s+/g, " ").trim();
+      if (clean) return clean.slice(0, 200);
+    }
+    const descEl = document.querySelector(
+      "#description-inline-expander, #description, ytd-text-inline-expander"
+    ) as HTMLElement | null;
+    if (descEl && descEl.textContent) {
+      const clean = descEl.textContent.replace(/\s+/g, " ").trim();
+      if (clean) return clean.slice(0, 200);
+    }
+  } catch {
+    // Ignore DOM errors
+  }
+
+  const parts: string[] = [];
+  if (channelName) parts.push(`Channel: ${channelName}`);
+  if (chapterTitles.length > 0) parts.push(`Topics: ${chapterTitles.slice(0, 4).join(", ")}`);
+  return parts.length > 0 ? parts.join(" | ").slice(0, 200) : null;
 }
 
 // -------------------------------------------------------------
@@ -96,7 +141,7 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
     sendResponse({
       hasSession: !!currentSession,
       isTracking: isStudyModeOn && !!currentSession,
-      pageTitle: currentSession?.pageTitle || document.title,
+      pageTitle: currentSession?.pageTitle || cleanPageTitle(document.title),
       sourceUrl: currentSession?.sourceUrl || window.location.href,
       sourceDomain: currentSession?.sourceDomain || window.location.hostname,
       mediaType: currentSession?.mediaType || "article",
@@ -208,6 +253,7 @@ function startTrackingSession(urlInfo: ReturnType<typeof sanitizeUrl>): void {
       sourceUrl: urlInfo.sanitizedUrl,
       sourceDomain: urlInfo.domain,
       pageTitle: title,
+      metaDescription: `PDF Document: ${title}`,
       mediaType: "pdf",
       startedAt: now,
       totalWords: 500,
@@ -234,6 +280,9 @@ function setupArticleObserver(urlInfo: ReturnType<typeof sanitizeUrl>, startTime
 
   if (!root) return;
 
+  const cleanTitle = cleanPageTitle(document.title || urlInfo.domain);
+  const metaDescription = extractMetaDescription();
+
   // Clone and strip headers, footers, navs, aside
   const clone = root.cloneNode(true) as HTMLElement;
   const ignoreSelectors = ["header", "footer", "nav", "aside", ".nav", ".menu", ".sidebar", "script", "style"];
@@ -244,19 +293,32 @@ function setupArticleObserver(urlInfo: ReturnType<typeof sanitizeUrl>, startTime
   const rawText = clone.textContent || clone.innerText || "";
   const totalWords = Math.max(1, rawText.trim().split(/\s+/).length);
 
-  // Extract headings
+  // Extract up to 6 headings
   const headingElements = Array.from(root.querySelectorAll("h1, h2, h3"));
-  const rawHeadings = headingElements.map((h) => (h as HTMLElement).innerText || "");
-  const headings = extractHeadings(rawHeadings, 5);
+  const rawHeadings = headingElements.map((h) => (h as HTMLElement).textContent || (h as HTMLElement).innerText || "");
+  const headings = extractHeadings(rawHeadings, 6);
 
-  // Extract keywords locally (text discarded immediately)
-  const keywords = extractKeywords(rawText, 10);
+  // Extract code snippets from <code> and <pre> tags for 3x technical weighting
+  const codeElements = Array.from(root.querySelectorAll("code, pre"));
+  const codeSnippets = codeElements
+    .map((el) => (el as HTMLElement).textContent || "")
+    .filter((t) => t.trim().length > 0)
+    .slice(0, 10);
+
+  // High-signal keywords with 3x weighting for title/headings/code and 2-word technical bigrams
+  const keywords = extractKeywords(rawText, {
+    title: cleanTitle,
+    headings,
+    codeSnippets,
+    maxKeywords: 10,
+  });
 
   currentSession = {
     clientEventId: generateUUID(),
     sourceUrl: urlInfo.sanitizedUrl,
     sourceDomain: urlInfo.domain,
-    pageTitle: document.title || urlInfo.domain,
+    pageTitle: cleanTitle,
+    metaDescription,
     mediaType: urlInfo.mediaType,
     startedAt: startTimeIso,
     totalWords,
@@ -316,17 +378,27 @@ function attachVideoListeners(
     if (text) chapterTitles.push(text);
   });
 
+  const cleanTitle = cleanPageTitle(document.title || "Video");
+  const metaDescription = extractYouTubeDescription(channelName, chapterTitles);
+  const headings = extractHeadings(chapterTitles, 6);
+  const keywords = extractKeywords(cleanTitle, {
+    title: cleanTitle,
+    headings,
+    maxKeywords: 10,
+  });
+
   const session: ContentSession = {
     clientEventId: generateUUID(),
     sourceUrl: urlInfo.sanitizedUrl,
     sourceDomain: urlInfo.domain,
-    pageTitle: document.title.replace(" - YouTube", "") || "Video",
+    pageTitle: cleanTitle,
+    metaDescription,
     mediaType: "video",
     startedAt: startTimeIso,
     totalWords: 0,
     viewedWords: 0,
-    viewedHeadings: extractHeadings(chapterTitles, 5),
-    topKeywords: extractKeywords(document.title, 8),
+    viewedHeadings: headings,
+    topKeywords: keywords,
     videoDurationSec: Math.round(video.duration || 0),
     channelName: channelName || undefined,
     watchedBuckets: new Set<number>(),
@@ -425,6 +497,7 @@ function buildSessionPayload(_reason: string) {
     source_domain: currentSession.sourceDomain,
     source_url: currentSession.sourceUrl,
     page_title: currentSession.pageTitle,
+    meta_description: currentSession.metaDescription || null,
     media_type: currentSession.mediaType,
     active_dwell_seconds: dwellToSend,
     estimated_coverage_pct: coveragePct,

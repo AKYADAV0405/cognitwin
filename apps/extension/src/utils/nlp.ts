@@ -1,4 +1,4 @@
-const COMMON_STOPWORDS = new Set([
+export const COMMON_STOPWORDS = new Set([
   "a", "about", "above", "after", "again", "against", "all", "am", "an", "and", "any", "are",
   "aren't", "as", "at", "be", "because", "been", "before", "being", "below", "between", "both",
   "but", "by", "can", "can't", "cannot", "could", "couldn't", "did", "didn't", "do", "does",
@@ -19,54 +19,157 @@ const COMMON_STOPWORDS = new Set([
   "used", "page", "website", "click", "home", "search", "like", "get", "new", "one", "two",
 ]);
 
+export const GENERIC_EXAMPLE_NOUNS = new Set([
+  "example", "examples", "sample", "samples", "tutorial", "tutorials",
+  "step", "steps", "method", "methods", "class", "classes",
+  "code", "codes", "image", "images", "output", "outputs",
+  "input", "inputs", "figure", "figures", "table", "tables",
+  "section", "sections", "guide", "guides", "overview", "introduction",
+  "summary", "conclusion", "result", "results", "file", "files",
+  "line", "lines", "item", "items", "page", "pages", "click",
+  "follow", "read", "write", "note", "notes", "tip", "tips",
+  "exercise", "exercises", "solution", "solutions", "source", "author",
+  "question", "questions", "answer", "answers", "video", "description",
+]);
+
 /**
- * Lightweight rule-based Term Frequency (TF) keyword extractor.
- * Strips common stopwords, rewards technical tokens (camelCase, snake_case, PascalCase, symbols),
- * and returns at most `maxKeywords` unique terms.
- *
- * Implements strict privacy: raw page text is consumed locally and discarded immediately.
+ * Strips site-name suffixes and branding delimiters from page titles.
+ * E.g.: "Data Preprocessing in Python - GeeksforGeeks" -> "Data Preprocessing in Python"
+ *       "Array.prototype.map() - JavaScript | MDN" -> "Array.prototype.map() - JavaScript"
  */
-export function extractKeywords(text: string, maxKeywords: number = 10): string[] {
-  if (!text || !text.trim()) return [];
+export function cleanPageTitle(rawTitle: string): string {
+  if (!rawTitle || !rawTitle.trim()) return "Untitled Document";
 
-  // Match words, code identifiers (camelCase, snake_case, kebab-case, C++ style)
-  const tokenRegex = /[a-zA-Z0-9_\-#+]{2,40}/g;
-  const matches = text.match(tokenRegex) || [];
+  let title = rawTitle.trim();
 
-  const freqMap = new Map<string, number>();
+  // Strip leading notification counts like "(2) "
+  title = title.replace(/^\(\d+\)\s*/, "");
 
-  for (const rawToken of matches) {
-    const lower = rawToken.toLowerCase();
-
-    // Skip stopwords or purely numeric tokens
-    if (COMMON_STOPWORDS.has(lower) || /^\d+$/.test(lower)) {
-      continue;
+  // Strip known high-profile brand suffixes
+  const knownBrandPattern =
+    /\s+[-|—·::]\s+(GeeksforGeeks|MDN Web Docs|MDN|YouTube|Stack Overflow|Wikipedia|W3Schools|GitHub|Medium|Dev\.to|LeetCode|Python documentation|Kaggle|Coursera|edX).*$/i;
+  if (knownBrandPattern.test(title)) {
+    title = title.replace(knownBrandPattern, "");
+  } else {
+    // Strip general trailing delimiter suffix: "Title - SiteName"
+    const genericSuffixPattern = /\s+[-|—·::]\s+[^-|—·::]{2,35}$/;
+    if (genericSuffixPattern.test(title)) {
+      title = title.replace(genericSuffixPattern, "").trim();
     }
-
-    // Weight boost for technical identifiers (camelCase or underscores or tech symbols)
-    const isTechToken =
-      /[A-Z]/.test(rawToken.slice(1)) ||
-      rawToken.includes("_") ||
-      rawToken.includes("-") ||
-      rawToken.includes("#") ||
-      rawToken.includes("+");
-
-    const weight = isTechToken ? 2.5 : 1.0;
-    freqMap.set(lower, (freqMap.get(lower) || 0) + weight);
   }
 
-  // Sort by weighted frequency descending
-  const sorted = Array.from(freqMap.entries())
-    .sort((a, b) => b[1] - a[1])
-    .map(([word]) => word);
+  return title.slice(0, 160).trim() || rawTitle.slice(0, 160).trim();
+}
 
+export interface ExtractionOptions {
+  title?: string;
+  headings?: string[];
+  codeSnippets?: string[];
+  maxKeywords?: number;
+}
+
+/**
+ * High-signal keyword extractor:
+ * - Weights title, headings, and <code> tags 3x higher than body text.
+ * - Extracts and prioritizes 2-word technical bigrams (e.g. "data preprocessing", "machine learning").
+ * - Filters generic example nouns ("example", "tutorial", "step", "method", etc.).
+ */
+export function extractKeywords(
+  bodyText: string,
+  optionsOrMaxKeywords: ExtractionOptions | number = 10
+): string[] {
+  const options: ExtractionOptions =
+    typeof optionsOrMaxKeywords === "number"
+      ? { maxKeywords: optionsOrMaxKeywords }
+      : optionsOrMaxKeywords;
+
+  const maxKeywords = options.maxKeywords || 10;
+  const tokenRegex = /[a-zA-Z0-9_\-#+]{2,40}/g;
+
+  const scoreMap = new Map<string, number>();
+
+  function processText(text: string, weightMultiplier: number) {
+    if (!text || !text.trim()) return;
+
+    const matches = text.match(tokenRegex) || [];
+    const validTokens: string[] = [];
+
+    // 1. Process unigrams
+    for (const rawToken of matches) {
+      const lower = rawToken.toLowerCase();
+
+      // Check if valid keyword candidate
+      const isStopword = COMMON_STOPWORDS.has(lower);
+      const isGeneric = GENERIC_EXAMPLE_NOUNS.has(lower);
+      const isPureNumber = /^\d+$/.test(lower);
+
+      if (!isStopword && !isGeneric && !isPureNumber && lower.length >= 3) {
+        validTokens.push(lower);
+
+        // Technical bonus for camelCase, snake_case, C++ symbols
+        const isTechToken =
+          /[A-Z]/.test(rawToken.slice(1)) ||
+          rawToken.includes("_") ||
+          rawToken.includes("-") ||
+          rawToken.includes("#") ||
+          rawToken.includes("+");
+
+        const tokenScore = (isTechToken ? 2.0 : 1.0) * weightMultiplier;
+        scoreMap.set(lower, (scoreMap.get(lower) || 0) + tokenScore);
+      } else {
+        validTokens.push(""); // Boundary break for bigrams
+      }
+    }
+
+    // 2. Extract technical 2-word bigrams
+    for (let i = 0; i < validTokens.length - 1; i++) {
+      const w1 = validTokens[i];
+      const w2 = validTokens[i + 1];
+
+      if (w1 && w2) {
+        const bigram = `${w1} ${w2}`;
+        // Bigrams get 2.5x bonus score over unigrams
+        const bigramScore = 2.5 * weightMultiplier;
+        scoreMap.set(bigram, (scoreMap.get(bigram) || 0) + bigramScore);
+      }
+    }
+  }
+
+  // A. Title: weight 3.0x
+  if (options.title) {
+    processText(options.title, 3.0);
+  }
+
+  // B. Headings: weight 3.0x
+  if (options.headings && options.headings.length > 0) {
+    for (const h of options.headings) {
+      processText(h, 3.0);
+    }
+  }
+
+  // C. Code snippets: weight 3.0x
+  if (options.codeSnippets && options.codeSnippets.length > 0) {
+    for (const c of options.codeSnippets) {
+      processText(c, 3.0);
+    }
+  }
+
+  // D. Main body text: weight 1.0x
+  processText(bodyText, 1.0);
+
+  // Sort by weighted score descending
+  const sorted = Array.from(scoreMap.entries())
+    .sort((a, b) => b[1] - a[1])
+    .map(([phrase]) => phrase);
+
+  // Keep top unique keywords/bigrams
   return sorted.slice(0, maxKeywords);
 }
 
 /**
  * Sanitizes and extracts at most `maxHeadings` strings, each <= 100 characters.
  */
-export function extractHeadings(headings: string[], maxHeadings: number = 5): string[] {
+export function extractHeadings(headings: string[], maxHeadings: number = 6): string[] {
   if (!headings || !headings.length) return [];
 
   const unique = new Set<string>();
@@ -96,11 +199,10 @@ export function extractKeywordsFromFilename(filenameOrPath: string): { title: st
   try {
     const rawName = filenameOrPath.split("/").pop() || filenameOrPath;
     const withoutExt = rawName.replace(/\.pdf$/i, "");
-    // Replace underscores, hyphens, and %20 with spaces
     const cleanTitle = decodeURIComponent(withoutExt).replace(/[_-]+/g, " ").trim();
 
-    const title = cleanTitle ? cleanTitle.slice(0, 160) : "PDF Document";
-    const keywords = extractKeywords(cleanTitle, 10);
+    const title = cleanPageTitle(cleanTitle ? cleanTitle.slice(0, 160) : "PDF Document");
+    const keywords = extractKeywords(title, { title, maxKeywords: 10 });
 
     return { title, keywords };
   } catch {

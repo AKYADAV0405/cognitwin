@@ -330,3 +330,111 @@ async def test_telemetry_validation_and_timestamp_clamping(client: AsyncClient) 
     now_utc = datetime.now(UTC)
     # Stored time should be <= now + 5 seconds (not 2 hours in future)
     assert stored_ended <= now_utc + timedelta(seconds=5)
+
+
+@pytest.mark.asyncio
+async def test_hourly_session_coalescing_and_meta_description(client: AsyncClient) -> None:
+    # 1. Register student & extension token
+    await client.post(
+        "/api/v1/auth/register",
+        json={
+            "email": "coalesce_test@example.com",
+            "password": "Password123!@#",
+            "role": "student",
+        },
+    )
+    token_resp = await client.post("/api/v1/auth/extension-token")
+    bearer_token = token_resp.json()["token"]
+
+    ext_client = AsyncClient(transport=ASGITransport(app=app), base_url="http://testserver")
+
+    # 2. Ingest first session for a page
+    event_id_1 = str(uuid.uuid4())
+    start_t1 = datetime(2026, 1, 15, 10, 10, 0, tzinfo=UTC)
+    end_t1 = datetime(2026, 1, 15, 10, 15, 0, tzinfo=UTC)
+
+    res1 = await ext_client.post(
+        "/api/v1/telemetry/passive",
+        headers={"Authorization": f"Bearer {bearer_token}"},
+        json={
+            "events": [
+                {
+                    "client_event_id": event_id_1,
+                    "source_domain": "geeksforgeeks.org",
+                    "source_url": "https://geeksforgeeks.org/data-preprocessing",
+                    "page_title": "Data Preprocessing in Python",
+                    "meta_description": "Learn data preprocessing steps with python examples.",
+                    "media_type": "article",
+                    "active_dwell_seconds": 35,
+                    "estimated_coverage_pct": 0.40,
+                    "viewed_headings": ["Introduction", "Handling Missing Data"],
+                    "top_keywords": ["data preprocessing", "missing values"],
+                    "is_revisit": False,
+                    "started_at": start_t1.isoformat(),
+                    "ended_at": end_t1.isoformat(),
+                }
+            ]
+        },
+    )
+    assert res1.status_code == 202
+    assert res1.json()["ingested"] == 1
+    assert res1.json()["duplicates_ignored"] == 0
+
+    # 3. Ingest second session for same URL within same hour bucket with different client_event_id
+    event_id_2 = str(uuid.uuid4())
+    start_t2 = datetime(2026, 1, 15, 10, 25, 0, tzinfo=UTC)
+    end_t2 = datetime(2026, 1, 15, 10, 30, 0, tzinfo=UTC)
+
+    res2 = await ext_client.post(
+        "/api/v1/telemetry/passive",
+        headers={"Authorization": f"Bearer {bearer_token}"},
+        json={
+            "events": [
+                {
+                    "client_event_id": event_id_2,
+                    "source_domain": "geeksforgeeks.org",
+                    "source_url": "https://geeksforgeeks.org/data-preprocessing",
+                    "page_title": "Data Preprocessing in Python",
+                    "media_type": "article",
+                    "active_dwell_seconds": 45,
+                    "estimated_coverage_pct": 0.85,
+                    "viewed_headings": ["Handling Missing Data", "Feature Scaling"],
+                    "top_keywords": ["feature scaling", "normalization"],
+                    "is_revisit": False,
+                    "started_at": start_t2.isoformat(),
+                    "ended_at": end_t2.isoformat(),
+                }
+            ]
+        },
+    )
+    assert res2.status_code == 202
+    assert res2.json()["ingested"] == 1
+    assert res2.json()["duplicates_ignored"] == 0
+
+    # 4. Verify only 1 coalesced record exists in DB for this page and session bucket
+    recent_res = await client.get("/api/v1/telemetry/passive/recent")
+    assert recent_res.status_code == 200
+    records = [
+        r
+        for r in recent_res.json()
+        if r["source_url"] == "https://geeksforgeeks.org/data-preprocessing"
+    ]
+    assert len(records) == 1
+    record = records[0]
+
+    # Verify coalesced metrics
+    assert record["session_bucket"] == "2026-01-15T10"
+    assert record["active_dwell_seconds"] == 35 + 45  # 80s summed
+    assert record["estimated_coverage_pct"] == 0.85  # max coverage
+    assert record["meta_description"] == "Learn data preprocessing steps with python examples."
+    assert set(record["viewed_headings"]) == {
+        "Introduction",
+        "Handling Missing Data",
+        "Feature Scaling",
+    }
+    assert set(record["top_keywords"]) == {
+        "data preprocessing",
+        "missing values",
+        "feature scaling",
+        "normalization",
+    }

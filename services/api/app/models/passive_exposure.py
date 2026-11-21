@@ -4,7 +4,7 @@ import uuid
 from datetime import datetime
 from typing import TYPE_CHECKING, Any
 
-from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, func
+from sqlalchemy import Boolean, DateTime, Float, ForeignKey, Integer, String, UniqueConstraint, func
 from sqlalchemy.dialects.postgresql import JSONB, UUID
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from sqlalchemy.types import JSON
@@ -21,6 +21,14 @@ class PassiveExposure(Base):
     """Passive study telemetry record captured by the Chrome extension."""
 
     __tablename__ = "passive_exposures"
+    __table_args__ = (
+        UniqueConstraint(
+            "user_id",
+            "source_url",
+            "session_bucket",
+            name="uq_passive_exposure_session_bucket",
+        ),
+    )
 
     id: Mapped[uuid.UUID] = mapped_column(
         UUID(as_uuid=True),
@@ -44,6 +52,11 @@ class PassiveExposure(Base):
         nullable=True,
         index=True,
     )  # Future Phase 4 Concept Graph Seam
+    session_bucket: Mapped[str] = mapped_column(
+        String(16),
+        nullable=False,
+        index=True,
+    )  # UTC hour bucket: YYYY-MM-DDTHH
     source_domain: Mapped[str] = mapped_column(
         String(255),
         nullable=False,
@@ -57,6 +70,14 @@ class PassiveExposure(Base):
         String(160),
         nullable=False,
     )
+    meta_description: Mapped[str | None] = mapped_column(
+        String(220),
+        nullable=True,
+    )
+    mapping_confidence: Mapped[float | None] = mapped_column(
+        Float,
+        nullable=True,
+    )  # Future Phase 4 Semantic Confidence
     media_type: Mapped[str] = mapped_column(
         String(32),
         nullable=False,

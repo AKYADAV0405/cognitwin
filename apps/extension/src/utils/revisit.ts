@@ -7,10 +7,12 @@ export interface RevisitEntry {
 export type RevisitCache = Record<string, RevisitEntry>;
 
 const FOURTEEN_DAYS_MS = 14 * 24 * 60 * 60 * 1000;
+const SIX_HOURS_MS = 6 * 60 * 60 * 1000; // 0.25 days
 const MAX_CACHE_ENTRIES = 500;
 
 /**
  * Checks if a sanitized URL has been visited within the 14-day window.
+ * Only marks `is_revisit = true` when the previous visit was at least 6 hours earlier (days_since_last_visit >= 0.25).
  */
 export function checkRevisit(
   cache: RevisitCache,
@@ -27,7 +29,16 @@ export function checkRevisit(
     return { isRevisit: false, daysSinceLastVisit: null };
   }
 
-  const days = Math.round((diffMs / (24 * 60 * 60 * 1000)) * 10) / 10;
+  const days = Math.round((diffMs / (24 * 60 * 60 * 1000)) * 100) / 100;
+
+  // Visited within last 6 hours: not considered a decay revisit
+  if (diffMs < SIX_HOURS_MS) {
+    return {
+      isRevisit: false,
+      daysSinceLastVisit: days,
+    };
+  }
+
   return {
     isRevisit: true,
     daysSinceLastVisit: days,

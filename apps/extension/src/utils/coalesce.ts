@@ -3,6 +3,7 @@ export interface RawTelemetryEvent {
   source_domain: string;
   source_url: string;
   page_title: string;
+  meta_description?: string | null;
   media_type: "article" | "docs" | "video" | "pdf";
   active_dwell_seconds: number;
   estimated_coverage_pct: number;
@@ -94,17 +95,22 @@ export function coalesceTelemetryEvents(events: RawTelemetryEvent[]): RawTelemet
         existing.estimated_coverage_pct,
         event.estimated_coverage_pct
       );
-      // Merge unique headings (up to 5)
+      // Merge unique headings (up to 6)
       const mergedHeadings = Array.from(
         new Set([...existing.viewed_headings, ...event.viewed_headings])
-      ).slice(0, 5);
+      ).slice(0, 6);
       existing.viewed_headings = mergedHeadings;
 
-      // Merge unique keywords (up to 10)
+      // Merge unique keywords (up to 12)
       const mergedKeywords = Array.from(
         new Set([...existing.top_keywords, ...event.top_keywords])
-      ).slice(0, 10);
+      ).slice(0, 12);
       existing.top_keywords = mergedKeywords;
+
+      // Keep or update meta description
+      if (!existing.meta_description && event.meta_description) {
+        existing.meta_description = event.meta_description;
+      }
 
       // Update ended_at to the latest timestamp
       if (new Date(event.ended_at) > new Date(existing.ended_at)) {
