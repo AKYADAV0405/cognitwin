@@ -9,7 +9,24 @@ const BATCH_FLUSH_SIZE = 20;
 let lastCheckpointMs = Date.now();
 let isSystemActive = true;
 
-// Initialize on installed
+// Helper to reliably find active tab across service worker contexts
+async function getActiveTab(): Promise<chrome.tabs.Tab | null> {
+  try {
+    const lastFocused = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+    if (lastFocused.length && lastFocused[0].id) return lastFocused[0];
+
+    const currentWin = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (currentWin.length && currentWin[0].id) return currentWin[0];
+
+    const anyActive = await chrome.tabs.query({ active: true });
+    if (anyActive.length && anyActive[0].id) return anyActive[0];
+  } catch (err) {
+    console.warn("[Cognitwin Background] Error querying active tab:", err);
+  }
+  return null;
+}
+
+// Initialize on installed / reloaded
 chrome.runtime.onInstalled.addListener(async () => {
   const existing = await chrome.storage.local.get(["studyMode", "blocklist", "apiUrl", "revisitCache", "eventQueue"]);
 
@@ -37,6 +54,21 @@ chrome.runtime.onInstalled.addListener(async () => {
   // Periodic flush alarm (every 3 minutes)
   chrome.alarms.create(ALARM_NAME, { periodInMinutes: 3 });
   updateBadge(existing.studyMode === true);
+
+  // Auto-inject content script into all open tabs on extension install / reload
+  try {
+    const openTabs = await chrome.tabs.query({ url: ["http://*/*", "https://*/*"] });
+    for (const tab of openTabs) {
+      if (tab.id && chrome.scripting) {
+        chrome.scripting.executeScript({
+          target: { tabId: tab.id },
+          files: ["content.js"],
+        }).catch(() => {});
+      }
+    }
+  } catch {
+    // Ignore permissions or restricted tabs
+  }
 });
 
 // Update extension icon badge
@@ -199,7 +231,7 @@ async function handleIncomingTelemetry(event: RawTelemetryEvent): Promise<void> 
   lastCheckpointMs = now;
 
   if (isSleepGap) {
-    return; // Discard event generated across OS sleep
+    return;
   }
 
   // 2. Revisit calculation and cache update
@@ -221,7 +253,6 @@ async function handleIncomingTelemetry(event: RawTelemetryEvent): Promise<void> 
   const rawQueue: RawTelemetryEvent[] = storage.eventQueue || [];
   rawQueue.push(event);
 
-  // Coalesce events
   let coalesced = coalesceTelemetryEvents(rawQueue);
 
   // Cap at 200 items (FIFO eviction if oversized)
@@ -250,20 +281,30 @@ export interface FlushResult {
 async function flushEventQueue(_reason: string): Promise<FlushResult> {
   // 1. First trigger snapshot on active tab to capture in-progress session
   let activeTabMessage: string | null = null;
+  let tabErrorReason: string | null = null;
   try {
-    const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-    if (tabs.length && tabs[0].id) {
-      const res = await chrome.tabs.sendMessage(tabs[0].id, { type: "REQUEST_SESSION_FLUSH" }).catch(() => null);
-      if (res) {
-        if (!res.flushed && res.message) {
-          activeTabMessage = res.message;
-        } else if (res.flushed && res.event) {
-          await handleIncomingTelemetry(res.event);
+    const activeTab = await getActiveTab();
+    if (activeTab && activeTab.id) {
+      try {
+        const res = await chrome.tabs.sendMessage(activeTab.id, { type: "REQUEST_SESSION_FLUSH" });
+        if (res) {
+          if (!res.flushed && res.message) {
+            activeTabMessage = res.message;
+          } else if (res.flushed && res.event) {
+            await handleIncomingTelemetry(res.event);
+          }
+        } else {
+          tabErrorReason = "Tab returned empty response";
         }
+      } catch (err: unknown) {
+        tabErrorReason = err instanceof Error ? err.message : String(err);
+        console.warn("[Cognitwin Background] REQUEST_SESSION_FLUSH failed on tab", activeTab.id, tabErrorReason);
       }
+    } else {
+      tabErrorReason = "No active web tab detected";
     }
-  } catch {
-    // Ignore tab query errors
+  } catch (err: unknown) {
+    tabErrorReason = err instanceof Error ? err.message : String(err);
   }
 
   const storage = await chrome.storage.local.get([
@@ -280,6 +321,13 @@ async function flushEventQueue(_reason: string): Promise<FlushResult> {
   if (!queue.length) {
     if (activeTabMessage) {
       return { success: false, count: 0, error: activeTabMessage };
+    }
+    if (tabErrorReason) {
+      return {
+        success: false,
+        count: 0,
+        error: `Cannot sync active tab (${tabErrorReason}). Please refresh the page (F5).`,
+      };
     }
     return { success: true, count: 0, message: "Queue is empty. No sessions to sync." };
   }
@@ -327,7 +375,6 @@ async function flushEventQueue(_reason: string): Promise<FlushResult> {
 
     return { success: false, count: 0, error: `HTTP ${res.status}: ${res.statusText}` };
   } catch {
-    // Network offline / server down: keep events in local storage for retry
     return { success: false, count: 0, error: `API unreachable at ${apiUrl}. Is backend running?` };
   }
 }

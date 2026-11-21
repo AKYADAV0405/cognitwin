@@ -21,6 +21,23 @@ interface FlushResult {
   error?: string;
 }
 
+// Helper to reliably find active tab across popup / browser window contexts
+async function getActiveTab(): Promise<chrome.tabs.Tab | null> {
+  try {
+    const lastFocused = await chrome.tabs.query({ active: true, lastFocusedWindow: true });
+    if (lastFocused.length && lastFocused[0].id) return lastFocused[0];
+
+    const currentWin = await chrome.tabs.query({ active: true, currentWindow: true });
+    if (currentWin.length && currentWin[0].id) return currentWin[0];
+
+    const anyActive = await chrome.tabs.query({ active: true });
+    if (anyActive.length && anyActive[0].id) return anyActive[0];
+  } catch (err) {
+    console.warn("[Cognitwin Popup] Error querying active tab:", err);
+  }
+  return null;
+}
+
 document.addEventListener("DOMContentLoaded", async () => {
   const toggle = document.getElementById("study-mode-toggle") as HTMLInputElement;
   const modeText = document.getElementById("mode-text");
@@ -78,13 +95,13 @@ document.addEventListener("DOMContentLoaded", async () => {
   // 2. Query active browser tab and query content script session state
   async function pollActiveTab(): Promise<void> {
     try {
-      const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
-      if (!tabs.length || !tabs[0].url) {
+      const activeTab = await getActiveTab();
+      if (!activeTab || !activeTab.url) {
         if (sessionTitleEl) sessionTitleEl.textContent = "No active web page";
+        if (sessionUrlEl) sessionUrlEl.textContent = "Open a webpage to begin tracking";
         return;
       }
 
-      const activeTab = tabs[0];
       activeTabId = activeTab.id || null;
       activeTabUrl = activeTab.url || "";
       const urlInfo = sanitizeUrl(activeTabUrl);
@@ -121,93 +138,126 @@ document.addEventListener("DOMContentLoaded", async () => {
         return;
       }
 
-      // Query content script for live active telemetry
+      // Query content script with programmatic injection fallback if not yet connected
       if (activeTabId) {
+        let tabSession: TabSessionState | null = null;
         try {
-          const tabSession: TabSessionState = await chrome.tabs.sendMessage(activeTabId, {
+          tabSession = await chrome.tabs.sendMessage(activeTabId, {
             type: "GET_PAGE_SESSION_STATE",
           });
-
-          if (tabSession) {
-            isTrackingActive = tabSession.isTracking;
-            localDwellSeconds = tabSession.activeDwellSeconds;
-
-            if (sessionTitleEl) {
-              sessionTitleEl.textContent = tabSession.pageTitle || activeTab.title || urlInfo.domain;
-            }
-
-            if (mediaBadge) {
-              mediaBadge.style.display = "inline-block";
-              mediaBadge.textContent = tabSession.mediaType;
-              if (tabSession.mediaType === "video") {
-                mediaBadge.className = "pill-badge";
-                mediaBadge.style.background = "#F3E8FF";
-                mediaBadge.style.color = "#7C3AED";
-              } else if (tabSession.mediaType === "docs") {
-                mediaBadge.className = "pill-badge";
-                mediaBadge.style.background = "#EFF6FF";
-                mediaBadge.style.color = "#1D4ED8";
-              } else {
-                mediaBadge.className = "pill-badge";
-                mediaBadge.style.background = "#ECFDF5";
-                mediaBadge.style.color = "#059669";
-              }
-            }
-
-            if (liveTimerEl) {
-              liveTimerEl.textContent = formatTime(tabSession.activeDwellSeconds);
-            }
-
-            const covPct = Math.round(tabSession.estimatedCoveragePct * 100);
-            if (liveCoverageEl) {
-              liveCoverageEl.textContent = `${covPct}%`;
-            }
-            if (coverageBarEl) {
-              coverageBarEl.style.width = `${covPct}%`;
-            }
-
-            if (tabSession.mediaType === "video" && rewindWrapper && liveRewindsEl) {
-              rewindWrapper.style.display = "block";
-              liveRewindsEl.textContent = String(tabSession.rewindCount);
-            } else if (rewindWrapper) {
-              rewindWrapper.style.display = "none";
-            }
-
-            // Top 4 Keywords preview
-            if (tabSession.topKeywords && tabSession.topKeywords.length > 0 && keywordsWrapper && sessionKeywordsEl) {
-              keywordsWrapper.style.display = "block";
-              sessionKeywordsEl.innerHTML = "";
-              tabSession.topKeywords.slice(0, 4).forEach((kw) => {
-                const tag = document.createElement("span");
-                tag.style.background = "var(--surface)";
-                tag.style.border = "1px solid var(--border-subtle)";
-                tag.style.borderRadius = "4px";
-                tag.style.padding = "1px 5px";
-                tag.style.fontSize = "10px";
-                tag.style.fontFamily = "monospace";
-                tag.style.color = "var(--ink-body)";
-                tag.textContent = kw;
-                sessionKeywordsEl.appendChild(tag);
+        } catch (err: unknown) {
+          const errMsg = err instanceof Error ? err.message : String(err);
+          console.warn("[Cognitwin Popup] Direct message failed, attempting auto-injection:", errMsg);
+          // Try auto-injecting content script if scripting permission is available
+          if (chrome.scripting && activeTabId) {
+            try {
+              await chrome.scripting.executeScript({
+                target: { tabId: activeTabId },
+                files: ["content.js"],
               });
+              await new Promise((r) => setTimeout(r, 200));
+              tabSession = await chrome.tabs.sendMessage(activeTabId, {
+                type: "GET_PAGE_SESSION_STATE",
+              });
+            } catch (injectErr: unknown) {
+              const injectMsg = injectErr instanceof Error ? injectErr.message : String(injectErr);
+              console.warn("[Cognitwin Popup] Injection retry also failed:", injectMsg);
             }
           }
-        } catch {
-          // Content script may not be loaded or page is static
-          if (sessionTitleEl) sessionTitleEl.textContent = activeTab.title || urlInfo.domain;
         }
-      }
 
-      if (sessionBadge) {
-        if (state.studyMode) {
-          sessionBadge.textContent = isTrackingActive ? "Tracking" : "Active";
-          sessionBadge.className = "pill-badge badge-tracking";
+        if (tabSession) {
+          isTrackingActive = tabSession.isTracking;
+          localDwellSeconds = tabSession.activeDwellSeconds;
+
+          if (sessionTitleEl) {
+            sessionTitleEl.textContent = tabSession.pageTitle || activeTab.title || urlInfo.domain;
+          }
+
+          if (mediaBadge) {
+            mediaBadge.style.display = "inline-block";
+            mediaBadge.textContent = tabSession.mediaType;
+            if (tabSession.mediaType === "video") {
+              mediaBadge.className = "pill-badge";
+              mediaBadge.style.background = "#F3E8FF";
+              mediaBadge.style.color = "#7C3AED";
+            } else if (tabSession.mediaType === "docs") {
+              mediaBadge.className = "pill-badge";
+              mediaBadge.style.background = "#EFF6FF";
+              mediaBadge.style.color = "#1D4ED8";
+            } else {
+              mediaBadge.className = "pill-badge";
+              mediaBadge.style.background = "#ECFDF5";
+              mediaBadge.style.color = "#059669";
+            }
+          }
+
+          if (liveTimerEl) {
+            liveTimerEl.textContent = formatTime(tabSession.activeDwellSeconds);
+          }
+
+          const covPct = Math.round(tabSession.estimatedCoveragePct * 100);
+          if (liveCoverageEl) {
+            liveCoverageEl.textContent = `${covPct}%`;
+          }
+          if (coverageBarEl) {
+            coverageBarEl.style.width = `${covPct}%`;
+          }
+
+          if (tabSession.mediaType === "video" && rewindWrapper && liveRewindsEl) {
+            rewindWrapper.style.display = "block";
+            liveRewindsEl.textContent = String(tabSession.rewindCount);
+          } else if (rewindWrapper) {
+            rewindWrapper.style.display = "none";
+          }
+
+          // Top 4 Keywords preview
+          if (tabSession.topKeywords && tabSession.topKeywords.length > 0 && keywordsWrapper && sessionKeywordsEl) {
+            keywordsWrapper.style.display = "block";
+            sessionKeywordsEl.innerHTML = "";
+            tabSession.topKeywords.slice(0, 4).forEach((kw) => {
+              const tag = document.createElement("span");
+              tag.style.background = "var(--surface)";
+              tag.style.border = "1px solid var(--border-subtle)";
+              tag.style.borderRadius = "4px";
+              tag.style.padding = "1px 5px";
+              tag.style.fontSize = "10px";
+              tag.style.fontFamily = "monospace";
+              tag.style.color = "var(--ink-body)";
+              tag.textContent = kw;
+              sessionKeywordsEl.appendChild(tag);
+            });
+          }
+
+          if (sessionBadge) {
+            if (state.studyMode) {
+              sessionBadge.textContent = isTrackingActive ? "Tracking" : "Active";
+              sessionBadge.className = "pill-badge badge-tracking";
+            } else {
+              sessionBadge.textContent = "Paused";
+              sessionBadge.className = "pill-badge badge-paused";
+            }
+          }
         } else {
-          sessionBadge.textContent = "Paused";
-          sessionBadge.className = "pill-badge badge-paused";
+          // Content script not responding on this tab
+          if (sessionTitleEl) sessionTitleEl.textContent = activeTab.title || urlInfo.domain;
+          if (sessionBadge) {
+            sessionBadge.textContent = "Disconnected";
+            sessionBadge.className = "pill-badge badge-paused";
+            sessionBadge.title = "Content script not responding. Refresh page (F5) to activate.";
+          }
+          if (syncFeedbackEl && syncFeedbackEl.style.display !== "block") {
+            syncFeedbackEl.style.display = "block";
+            syncFeedbackEl.style.background = "var(--fading-bg)";
+            syncFeedbackEl.style.border = "1px solid var(--fading-border)";
+            syncFeedbackEl.style.color = "var(--fading)";
+            syncFeedbackEl.textContent = "⚠️ Tab not connected to Cognitwin. Please refresh the page (F5).";
+          }
         }
       }
-    } catch {
-      if (sessionTitleEl) sessionTitleEl.textContent = "No active tab";
+    } catch (err: unknown) {
+      console.warn("[Cognitwin Popup] pollActiveTab error:", err);
+      if (sessionTitleEl) sessionTitleEl.textContent = "Error detecting tab";
     }
   }
 
@@ -240,7 +290,7 @@ document.addEventListener("DOMContentLoaded", async () => {
       modeText.className = isNowOn ? "mode-label on" : "mode-label";
     }
     if (sessionBadge && activeTabDomain) {
-      sessionBadge.textContent = isNowOn ? "Tracking" : "Paused";
+      sessionBadge.textContent = isNowOn ? (isTrackingActive ? "Tracking" : "Active") : "Paused";
       sessionBadge.className = isNowOn ? "pill-badge badge-tracking" : "pill-badge badge-paused";
     }
   }
