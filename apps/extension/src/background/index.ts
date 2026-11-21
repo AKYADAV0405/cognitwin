@@ -249,10 +249,18 @@ export interface FlushResult {
 
 async function flushEventQueue(_reason: string): Promise<FlushResult> {
   // 1. First trigger snapshot on active tab to capture in-progress session
+  let activeTabMessage: string | null = null;
   try {
     const tabs = await chrome.tabs.query({ active: true, currentWindow: true });
     if (tabs.length && tabs[0].id) {
-      await chrome.tabs.sendMessage(tabs[0].id, { type: "REQUEST_SESSION_FLUSH" }).catch(() => {});
+      const res = await chrome.tabs.sendMessage(tabs[0].id, { type: "REQUEST_SESSION_FLUSH" }).catch(() => null);
+      if (res) {
+        if (!res.flushed && res.message) {
+          activeTabMessage = res.message;
+        } else if (res.flushed && res.event) {
+          await handleIncomingTelemetry(res.event);
+        }
+      }
     }
   } catch {
     // Ignore tab query errors
@@ -270,6 +278,9 @@ async function flushEventQueue(_reason: string): Promise<FlushResult> {
   const apiUrl: string = storage.apiUrl || "http://localhost:8000";
 
   if (!queue.length) {
+    if (activeTabMessage) {
+      return { success: false, count: 0, error: activeTabMessage };
+    }
     return { success: true, count: 0, message: "Queue is empty. No sessions to sync." };
   }
 

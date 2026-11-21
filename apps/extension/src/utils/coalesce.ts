@@ -64,12 +64,12 @@ export function getHourBucket(isoDateString: string): string {
 }
 
 /**
- * Filters out visits < 20s and coalesces rapid tab-hopping visits to the same
+ * Filters out visits < 15s and coalesces rapid tab-hopping visits to the same
  * URL within the same hour bucket into a single unified event.
  */
 export function coalesceTelemetryEvents(events: RawTelemetryEvent[]): RawTelemetryEvent[] {
-  // 1. Drop visits < 20s
-  const validEvents = events.filter((e) => e.active_dwell_seconds >= 20);
+  // 1. Drop visits < 15s
+  const validEvents = events.filter((e) => e.active_dwell_seconds >= 15);
   if (!validEvents.length) return [];
 
   const grouped = new Map<string, RawTelemetryEvent>();

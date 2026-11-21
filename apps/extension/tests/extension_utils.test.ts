@@ -205,7 +205,7 @@ describe("7. Sleep Gap Delta Cap & Coalescing Engine", () => {
     expect(sleep.effectiveDeltaSec).toBe(0);
   });
 
-  it("drops visits < 20s and coalesces visits in the same hour", () => {
+  it("drops visits < 15s and coalesces visits in the same hour", () => {
     const events: RawTelemetryEvent[] = [
       {
         client_event_id: "evt-1",
@@ -213,7 +213,7 @@ describe("7. Sleep Gap Delta Cap & Coalescing Engine", () => {
         source_url: "https://react.dev/learn",
         page_title: "Quick Start",
         media_type: "docs",
-        active_dwell_seconds: 10, // < 20s -> should be dropped
+        active_dwell_seconds: 10, // < 15s -> should be dropped
         estimated_coverage_pct: 0.1,
         viewed_headings: ["Intro"],
         top_keywords: ["react"],
@@ -255,7 +255,7 @@ describe("7. Sleep Gap Delta Cap & Coalescing Engine", () => {
     ];
 
     const coalesced = coalesceTelemetryEvents(events);
-    expect(coalesced.length).toBe(1); // evt-1 dropped, evt-2 and evt-3 coalesced
+    expect(coalesced.length).toBe(1); // evt-1 dropped (<15s), evt-2 and evt-3 coalesced
     expect(coalesced[0].active_dwell_seconds).toBe(105); // 45 + 60
     expect(coalesced[0].estimated_coverage_pct).toBe(0.7); // max(0.3, 0.7)
     expect(coalesced[0].viewed_headings).toContain("Intro");

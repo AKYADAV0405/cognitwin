@@ -28,7 +28,6 @@ interface ContentSession {
 let currentSession: ContentSession | null = null;
 let activeDwellSeconds = 0;
 let lastHeartbeatTime = Date.now();
-let isWindowFocused = document.hasFocus();
 let isTabVisible = document.visibilityState === "visible";
 let isStudyModeOn = false;
 
@@ -47,7 +46,7 @@ function generateUUID(): string {
 /**
  * Initializes content tracking on the current page.
  */
-async function initContentTracker(): Promise<void> {
+async function initContentTracker(immediate: boolean = false): Promise<void> {
   const currentUrl = window.location.href;
   const urlInfo = sanitizeUrl(currentUrl);
 
@@ -67,10 +66,14 @@ async function initContentTracker(): Promise<void> {
     return;
   }
 
-  // Hydration delay (~2s) for SPA / dynamic content
-  setTimeout(() => {
+  if (immediate || document.readyState === "complete") {
     startTrackingSession(urlInfo);
-  }, 2000);
+  } else {
+    // Hydration delay (~1.5s) for SPA / dynamic content
+    setTimeout(() => {
+      startTrackingSession(urlInfo);
+    }, 1500);
+  }
 }
 
 function startTrackingSession(urlInfo: ReturnType<typeof sanitizeUrl>): void {
@@ -269,9 +272,9 @@ function tick(): void {
   lastHeartbeatTime = now;
 
   // Attention rules:
-  // For articles: requires active tab + focused window
-  // For videos: counts if tab is visible and video playing
-  let isActive = isWindowFocused && isTabVisible;
+  // Dwell counts whenever tab is visible and Study Mode is ON.
+  // Tab visibility (document.visibilityState === 'visible') is preserved when clicking the extension popup.
+  let isActive = isTabVisible;
 
   if (currentSession?.mediaType === "video") {
     const video = document.querySelector("video");
@@ -287,24 +290,11 @@ function tick(): void {
 setInterval(tick, 1000);
 
 /**
- * Flushes the current session to the background worker.
- * Returns true if session payload was sent.
+ * Builds the telemetry session payload dictionary.
  */
-function flushSession(reason: string, force: boolean = false): boolean {
-  if (!currentSession || !isStudyModeOn) {
-    return false;
-  }
+function buildSessionPayload(_reason: string) {
+  if (!currentSession) return null;
 
-  // If dwell is below 15s and force is not set, skip
-  if (activeDwellSeconds < 15 && !force) {
-    return false;
-  }
-
-  if (activeDwellSeconds === 0) {
-    return false;
-  }
-
-  // Clamped dwell for backend Pydantic ge=15 validation
   const dwellToSend = Math.max(15, activeDwellSeconds);
 
   let coveragePct = 0.0;
@@ -326,7 +316,7 @@ function flushSession(reason: string, force: boolean = false): boolean {
       ? currentSession.playbackRates.reduce((a, b) => a + b, 0) / currentSession.playbackRates.length
       : 1.0;
 
-  const eventPayload = {
+  return {
     client_event_id: currentSession.clientEventId,
     source_domain: currentSession.sourceDomain,
     source_url: currentSession.sourceUrl,
@@ -349,6 +339,32 @@ function flushSession(reason: string, force: boolean = false): boolean {
           }
         : null,
   };
+}
+
+/**
+ * Flushes the current session to the background worker.
+ * Returns true if session payload was sent.
+ */
+function flushSession(reason: string, force: boolean = false): boolean {
+  if (!currentSession) {
+    return false;
+  }
+
+  if (!isStudyModeOn && reason !== "study_mode_off") {
+    return false;
+  }
+
+  // If dwell is below 15s and force is not set, skip
+  if (activeDwellSeconds < 15 && !force) {
+    return false;
+  }
+
+  if (activeDwellSeconds === 0) {
+    return false;
+  }
+
+  const eventPayload = buildSessionPayload(reason);
+  if (!eventPayload) return false;
 
   try {
     chrome.runtime.sendMessage({
@@ -356,6 +372,10 @@ function flushSession(reason: string, force: boolean = false): boolean {
       reason,
       event: eventPayload,
     });
+    // Reset dwell counter and renew clientEventId for next interval
+    activeDwellSeconds = 0;
+    currentSession.clientEventId = generateUUID();
+    currentSession.startedAt = new Date().toISOString();
     return true;
   } catch {
     return false;
@@ -367,15 +387,7 @@ setInterval(() => {
   flushSession("30s_checkpoint");
 }, 30000);
 
-// Window and tab visibility listeners
-window.addEventListener("focus", () => {
-  isWindowFocused = true;
-});
-
-window.addEventListener("blur", () => {
-  isWindowFocused = false;
-});
-
+// Tab visibility listener
 document.addEventListener("visibilitychange", () => {
   isTabVisible = document.visibilityState === "visible";
   if (!isTabVisible) {
@@ -391,15 +403,39 @@ window.addEventListener("beforeunload", () => {
 window.addEventListener("yt-navigate-finish", () => {
   flushSession("yt_navigate_finish");
   currentSession = null;
-  initContentTracker();
+  initContentTracker(true);
 });
+
+// Listen to storage changes for immediate study mode updates on existing tabs
+try {
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area === "local" && changes.studyMode) {
+      const wasStudyMode = isStudyModeOn;
+      isStudyModeOn = changes.studyMode.newValue === true;
+      if (isStudyModeOn && !wasStudyMode) {
+        if (!currentSession) {
+          initContentTracker(true);
+        }
+      } else if (!isStudyModeOn && wasStudyMode) {
+        flushSession("study_mode_off", true);
+      }
+    }
+  });
+} catch {
+  // Graceful fallback if storage listener unavailable
+}
 
 // Listen for messages from background script & popup
 chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   if (message.type === "STUDY_MODE_CHANGED") {
+    const wasStudyMode = isStudyModeOn;
     isStudyModeOn = message.studyMode === true;
-    if (!isStudyModeOn) {
+    if (wasStudyMode && !isStudyModeOn) {
       flushSession("study_mode_off", true);
+    } else if (!wasStudyMode && isStudyModeOn) {
+      if (!currentSession) {
+        initContentTracker(true);
+      }
     }
   }
 
@@ -436,8 +472,27 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
   }
 
   if (message.type === "REQUEST_SESSION_FLUSH") {
-    const flushed = flushSession("manual_sync_now", true);
-    sendResponse({ flushed });
+    if (!currentSession) {
+      sendResponse({ flushed: false, message: "No active session on this tab." });
+      return true;
+    }
+    if (activeDwellSeconds < 15) {
+      sendResponse({
+        flushed: false,
+        dwell: activeDwellSeconds,
+        message: `Need at least 15s of active study time before syncing (current: ${activeDwellSeconds}s).`,
+      });
+      return true;
+    }
+    const eventPayload = buildSessionPayload("manual_sync_now");
+    activeDwellSeconds = 0;
+    currentSession.clientEventId = generateUUID();
+    currentSession.startedAt = new Date().toISOString();
+    sendResponse({
+      flushed: true,
+      event: eventPayload,
+      dwell: eventPayload ? eventPayload.active_dwell_seconds : 0,
+    });
     return true;
   }
 
