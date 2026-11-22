@@ -3,7 +3,7 @@ Temporal Prerequisite-Aware Graph Knowledge Tracing (TPA-GKT)
 Graph Builder Module: Dual Knowledge Graph Construction
 
 Builds:
-  1. A_hier.pt    : Curriculum hierarchy graph from Info_Content.csv (level4/level3 shared subtrees)
+  1. A_hier.pt    : Curriculum hierarchy graph from Info_Content.csv (level4/level3/level2 subtrees)
   2. A_trans.pt   : Empirical transition graph strictly from train.parquet (Zero leakage)
   3. A_combined.pt: Linear combination A_comb = alpha * A_hier + (1 - alpha) * A_trans + I
 
@@ -50,10 +50,13 @@ def build_hierarchical_graph(
     """
     Construct prerequisite curriculum hierarchy graph A_hier from Info_Content.csv.
 
-    Concepts sharing the same level4_id (or level3_id if level4_id is absent)
-    are connected with bidirectional edges of weight 1.0.
+    Concepts sharing level4_id (or level3_id if level4_id is absent) are connected
+    with bidirectional edges of weight 1.0.
+    For any concept with 0 neighbors at level4/3, falls back to connecting it to
+    concepts sharing the same level2_id with weight 0.5 (or level1_id with weight 0.25).
     """
-    content_df = pd.read_csv(info_content_csv, usecols=["ucid", "level3_id", "level4_id"])
+    cols = ["ucid", "level1_id", "level2_id", "level3_id", "level4_id"]
+    content_df = pd.read_csv(info_content_csv, usecols=cols)
 
     # Filter to concepts in current vocabulary
     tracked_concepts = set(concept2idx.keys())
@@ -62,32 +65,71 @@ def build_hierarchical_graph(
     # Determine grouping taxonomy level per concept
     has_l4 = content_df["level4_id"].notna() & (content_df["level4_id"] != "")
     content_df["cluster_id"] = np.where(has_l4, content_df["level4_id"], content_df["level3_id"])
+    content_df["idx"] = content_df["ucid"].map(concept2idx)
 
-    # Group concept indices by taxonomy cluster
-    cluster_groups = defaultdict(list)
+    edge_weights: dict[tuple[int, int], float] = {}
+    node_neighbors: dict[int, set[int]] = defaultdict(set)
+
+    # 1. Level 4 / 3 clusters with weight 1.0
+    l43_groups = defaultdict(list)
     for _, row in content_df.iterrows():
-        c_ucid = str(row["ucid"])
-        if c_ucid in concept2idx:
-            idx = concept2idx[c_ucid]
-            cluster = str(row["cluster_id"])
-            if cluster and cluster.lower() != "nan":
-                cluster_groups[cluster].append(idx)
+        idx = int(row["idx"])
+        cluster = str(row["cluster_id"])
+        if cluster and cluster.lower() != "nan":
+            l43_groups[cluster].append(idx)
 
-    # Generate bidirectional edges between concepts sharing cluster
-    edge_set: set[tuple[int, int]] = set()
-    for _cluster, members in cluster_groups.items():
+    for _cluster, members in l43_groups.items():
         if len(members) > 1:
-            for i in range(len(members)):
-                for j in range(len(members)):
+            for i in members:
+                for j in members:
                     if i != j:
-                        edge_set.add((members[i], members[j]))
+                        edge_weights[(i, j)] = 1.0
+                        node_neighbors[i].add(j)
 
-    if edge_set:
-        edges = sorted(list(edge_set))
-        src = [e[0] for e in edges]
-        dst = [e[1] for e in edges]
+    # 2. Level 2 fallback for concepts with 0 level4/3 neighbors (weight 0.5)
+    l2_groups = defaultdict(list)
+    l1_groups = defaultdict(list)
+    for _, row in content_df.iterrows():
+        idx = int(row["idx"])
+        l2 = str(row["level2_id"])
+        l1 = str(row["level1_id"])
+        if l2 and l2.lower() != "nan":
+            l2_groups[l2].append(idx)
+        if l1 and l1.lower() != "nan":
+            l1_groups[l1].append(idx)
+
+    all_indices = set(content_df["idx"].values)
+    isolated_l43 = [i for i in all_indices if len(node_neighbors[i]) == 0]
+
+    for iso_idx in isolated_l43:
+        iso_row = content_df[content_df["idx"] == iso_idx].iloc[0]
+        iso_l2 = str(iso_row["level2_id"])
+        siblings = [s for s in l2_groups.get(iso_l2, []) if s != iso_idx]
+        if siblings:
+            for sib_idx in siblings:
+                if (iso_idx, sib_idx) not in edge_weights:
+                    edge_weights[(iso_idx, sib_idx)] = 0.5
+                    edge_weights[(sib_idx, iso_idx)] = 0.5
+                    node_neighbors[iso_idx].add(sib_idx)
+                    node_neighbors[sib_idx].add(iso_idx)
+        else:
+            # Fall back to level 1 topic domain if unique in level 2 (weight 0.25)
+            iso_l1 = str(iso_row["level1_id"])
+            l1_sibs = [s for s in l1_groups.get(iso_l1, []) if s != iso_idx]
+            for sib_idx in l1_sibs:
+                if (iso_idx, sib_idx) not in edge_weights:
+                    edge_weights[(iso_idx, sib_idx)] = 0.25
+                    edge_weights[(sib_idx, iso_idx)] = 0.25
+                    node_neighbors[iso_idx].add(sib_idx)
+                    node_neighbors[sib_idx].add(iso_idx)
+
+    if edge_weights:
+        sorted_edges = sorted(edge_weights.keys())
+        src = [e[0] for e in sorted_edges]
+        dst = [e[1] for e in sorted_edges]
+        weights = [edge_weights[e] for e in sorted_edges]
         edge_index = torch.tensor([src, dst], dtype=torch.long)
-        edge_weight = torch.ones(len(edges), dtype=torch.float32)
+        edge_weight = torch.tensor(weights, dtype=torch.float32)
     else:
         edge_index = torch.empty((2, 0), dtype=torch.long)
         edge_weight = torch.empty(0, dtype=torch.float32)

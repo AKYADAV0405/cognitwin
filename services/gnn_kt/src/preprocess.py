@@ -160,7 +160,7 @@ def run_preprocessing(
     top_n_concepts = int(cfg["top_n_concepts"])
     min_interactions = int(cfg["min_interactions"])
     max_interactions = int(cfg.get("max_interactions", 1000))
-    chunksize = int(cfg.get("chunksize", 500000))
+    chunksize = int(cfg.get("chunksize", 1000000))
     train_ratio = float(cfg.get("train_ratio", 0.70))
     val_ratio = float(cfg.get("val_ratio", 0.15))
 
@@ -172,45 +172,50 @@ def run_preprocessing(
     print("TPA-GKT PREPROCESSING: ZERO-LEAKAGE CHUNKED STREAMING")
     print(f"Data Raw Dir     : {data_raw_dir}")
     print(f"Data Processed   : {data_proc_dir}")
-    print(f"Fast Dev Run     : {fast_dev_run} (Max Students: {target_max_students:,})")
+    print(f"Fast Dev Run     : {fast_dev_run} (Target Students: {target_max_students:,})")
     print(f"Top Concepts (N) : {top_n_concepts}")
     print(f"Min Interactions : {min_interactions}")
     print(f"Random Seed      : {seed}")
     print("=" * 78)
 
     # --------------------------------------------------------------------------
-    # PASS 1: Chunked Counting (Memory-Safe Concept & Student Selection)
+    # PASS 1A: Count Concept Occurrences Across the Entire Log
     # --------------------------------------------------------------------------
-    print("\n[Pass 1/2] Streaming Log_Problem.csv to count concept and student occurrences...")
+    print("\n[Pass 1A/2] Streaming Log_Problem.csv to select top concepts...")
     ucid_counts: Counter[str] = Counter()
-    uuid_counts: Counter[str] = Counter()
-
     total_streamed_rows = 0
-    chunk_idx = 0
-    for chunk in pd.read_csv(log_problem_csv, chunksize=chunksize, usecols=["uuid", "ucid"]):
+
+    for chunk in pd.read_csv(log_problem_csv, chunksize=chunksize, usecols=["ucid"]):
         total_streamed_rows += len(chunk)
-        chunk_idx += 1
         ucid_counts.update(chunk["ucid"].value_counts().to_dict())
-        uuid_counts.update(chunk["uuid"].value_counts().to_dict())
-        if chunk_idx % 10 == 0:
-            print(f"  Processed {total_streamed_rows:,} rows across {chunk_idx} chunks...")
 
-    print(
-        f"  Total Rows: {total_streamed_rows:,} across {len(ucid_counts):,} concepts "
-        f"and {len(uuid_counts):,} students."
-    )
-
-    # Select Top N Concepts
     top_concepts = [c for c, _ in ucid_counts.most_common(top_n_concepts)]
     top_concepts_set = set(top_concepts)
-
-    # Filter Students with >= min_interactions
-    eligible_students = sorted(
-        [u for u, cnt in uuid_counts.items() if cnt >= min_interactions]
+    print(
+        f"  Identified top {len(top_concepts)} concepts across {total_streamed_rows:,} total rows."
     )
-    print(f"  Eligible Students (>={min_interactions} total): {len(eligible_students):,}")
 
-    # Deterministic Seeded Subsampling
+    # --------------------------------------------------------------------------
+    # PASS 1B: Count Student Interactions STRICTLY on Top Concepts
+    # --------------------------------------------------------------------------
+    print("\n[Pass 1B/2] Counting student interactions strictly on the top 150 concepts...")
+    uuid_concept_counts: Counter[str] = Counter()
+
+    for chunk in pd.read_csv(log_problem_csv, chunksize=chunksize, usecols=["uuid", "ucid"]):
+        matched_mask = chunk["ucid"].isin(top_concepts_set)
+        if matched_mask.any():
+            uuid_concept_counts.update(chunk.loc[matched_mask, "uuid"].value_counts().to_dict())
+
+    # Filter Students with >= min_interactions on top concepts
+    eligible_students = sorted(
+        [u for u, cnt in uuid_concept_counts.items() if cnt >= min_interactions]
+    )
+    print(
+        f"  Eligible Students (>= {min_interactions} interactions on top concepts): "
+        f"{len(eligible_students):,}"
+    )
+
+    # Deterministic Seeded Sampling
     rng = np.random.RandomState(seed)
     if len(eligible_students) > target_max_students:
         selected_students = sorted(
@@ -225,7 +230,7 @@ def run_preprocessing(
     # --------------------------------------------------------------------------
     # PASS 2: Chunked Filtering & Monotonic Ordering
     # --------------------------------------------------------------------------
-    print("\n[Pass 2/2] Streaming Log_Problem.csv to filter cohorts & preserve tie-breakers...")
+    print("\n[Pass 2/2] Streaming Log_Problem.csv to extract selected cohorts...")
     verified_cols = [
         "uuid",
         "ucid",
@@ -247,7 +252,7 @@ def run_preprocessing(
         )
         global_row_offset += chunk_len
 
-        # Filter to target concepts and selected students
+        # Filter strictly to target concepts and selected students
         mask = chunk["ucid"].isin(top_concepts_set) & chunk["uuid"].isin(selected_students_set)
         matched = chunk[mask]
         if not matched.empty:
@@ -259,26 +264,49 @@ def run_preprocessing(
     df = pd.concat(filtered_chunks, ignore_index=True)
     print(f"  Extracted {len(df):,} interaction records for selected cohorts.")
 
-    # Convert timestamps to UTC Unix seconds (tie-breaker: uuid, timestamp_sec, orig_idx)
-    df["timestamp_sec"] = pd.to_datetime(df["timestamp_TW"], utc=True).astype("int64") // 10**9
-    df = df.sort_values(by=["uuid", "timestamp_sec", "orig_idx"]).reset_index(drop=True)
+    # --------------------------------------------------------------------------
+    # DATA HYGIENE: Deduplication & Boundary Clipping
+    # --------------------------------------------------------------------------
+    n_before_dedup = len(df)
+    df = df.drop_duplicates(subset=["uuid", "upid", "timestamp_TW", "is_correct"]).reset_index(
+        drop=True
+    )
+    n_dropped_dups = n_before_dedup - len(df)
+    print(f"  Data Hygiene: Dropped {n_dropped_dups:,} duplicate interaction rows.")
 
-    # Enforce min_interactions constraint on target concepts
-    student_concept_counts = df["uuid"].value_counts()
-    valid_students = set(
-        student_concept_counts[student_concept_counts >= min_interactions].index.tolist()
+    # Verify and clip non-negative telemetry attributes
+    df["total_sec_taken"] = np.maximum(0, df["total_sec_taken"].values)
+    df["used_hint_cnt"] = np.maximum(0, df["used_hint_cnt"].values)
+    df["total_attempt_cnt"] = np.maximum(0, df["total_attempt_cnt"].values)
+
+    # Convert timestamps to exact Unix seconds (seconds resolution)
+    df["timestamp_sec"] = (
+        pd.to_datetime(df["timestamp_TW"], utc=True)
+        .to_numpy(dtype="datetime64[s]")
+        .astype(np.int64)
     )
-    df = df[df["uuid"].isin(valid_students)].copy().reset_index(drop=True)
-    print(
-        f"  Cohort with >={min_interactions} on top concepts: "
-        f"{len(valid_students):,} students ({len(df):,} interactions)."
-    )
+
+    # Sort deterministically with monotonic orig_idx tie-breaker
+    df = df.sort_values(by=["uuid", "timestamp_sec", "orig_idx"]).reset_index(drop=True)
 
     # Optional Truncation to max_interactions per student sequence
     if max_interactions > 0:
         df["interaction_rank"] = df.groupby("uuid").cumcount()
         df = df[df["interaction_rank"] < max_interactions].copy().reset_index(drop=True)
         df = df.drop(columns=["interaction_rank"])
+
+    # Report sequence length statistics
+    seq_lens = df.groupby("uuid").size()
+    seq_stats = {
+        "min": int(seq_lens.min()),
+        "median": float(seq_lens.median()),
+        "p95": float(np.percentile(seq_lens, 95)),
+        "max": int(seq_lens.max()),
+    }
+    print(
+        f"  Sequence lengths per student: min={seq_stats['min']}, "
+        f"median={seq_stats['median']:.1f}, p95={seq_stats['p95']:.1f}, max={seq_stats['max']}"
+    )
 
     # --------------------------------------------------------------------------
     # Join Curriculum Hierarchy & Difficulty from Info_Content.csv
@@ -387,6 +415,28 @@ def run_preprocessing(
     test_df, test_retention = compute_delayed_retention(test_df)
 
     # --------------------------------------------------------------------------
+    # Hygiene Verification: Assert Zero NaNs / Infs Across All DataFrames
+    # --------------------------------------------------------------------------
+    datasets_to_verify = [
+        ("train", train_df),
+        ("val", val_df),
+        ("test", test_df),
+        ("train_retention", train_retention),
+        ("val_retention", val_retention),
+        ("test_retention", test_retention),
+    ]
+    for d_name, d_obj in datasets_to_verify:
+        num_cols = d_obj.select_dtypes(include=[np.number]).columns
+        nan_sum = int(d_obj[num_cols].isna().sum().sum())
+        inf_sum = int(np.isinf(d_obj[num_cols].to_numpy()).sum())
+        if nan_sum > 0 or inf_sum > 0:
+            raise ValueError(
+                f"Data hygiene assertion failed for {d_name}: {nan_sum} NaNs, {inf_sum} Infs found!"
+            )
+
+    print("  Data Hygiene: Verified 0 NaNs and 0 Infs across all numeric columns.")
+
+    # --------------------------------------------------------------------------
     # Save Parquet Datasets & Metadata
     # --------------------------------------------------------------------------
     print(f"\nPersisting processed artifacts to {data_proc_dir}...")
@@ -417,6 +467,12 @@ def run_preprocessing(
             "mean": scaler.mean_.tolist(),
             "scale": scaler.scale_.tolist(),
             "var": scaler.var_.tolist(),
+        },
+        "sequence_length_stats": seq_stats,
+        "data_hygiene": {
+            "duplicate_rows_dropped": n_dropped_dups,
+            "zero_nans_verified": True,
+            "zero_infs_verified": True,
         },
         "cohort_counts": {
             "train_students": len(train_students),
@@ -463,8 +519,27 @@ def run_preprocessing(
     )
     print(f"Class Balance (Acc)  : Train={train_acc:.3f}, Val={val_acc:.3f}, Test={test_acc:.3f}")
     print(f"Retention Pairs Total: {total_ret:,}")
-    print("Retention Target Distribution (Train):")
-    print(train_retention["retention_bucket_name"].value_counts().to_string())
+
+    print("\n" + "-" * 78)
+    print("RETENTION DELAY BUCKET BREAKDOWN (ACROSS TRAIN, VAL, TEST)")
+    print("-" * 78)
+    bucket_order = ["<1h", "1h-24h", "1d-7d", ">7d"]
+    splits_ret = [
+        ("Train", train_retention),
+        ("Val", val_retention),
+        ("Test", test_retention),
+    ]
+    for s_name, s_ret in splits_ret:
+        b_counts = s_ret["retention_bucket_name"].value_counts().to_dict()
+        n_total_s = len(s_ret)
+        b_summary = " | ".join(
+            [
+                f"{b}: {b_counts.get(b, 0):>5,} "
+                f"({b_counts.get(b, 0) / max(1, n_total_s) * 100:>5.1f}%)"
+                for b in bucket_order
+            ]
+        )
+        print(f"  {s_name:<5} (Total {n_total_s:>5,}): {b_summary}")
     print("=" * 78)
 
     return metadata

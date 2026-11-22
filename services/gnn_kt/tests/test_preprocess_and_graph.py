@@ -6,7 +6,7 @@ Verifies:
      - Scaler fitted strictly on Train.
      - Unseen test problems map to 0 (<UNK>).
      - Transition graph A_trans computed purely from Train split.
-  2. Retention delay bucket assignment and target construction.
+  2. Retention delay bucket assignment and target construction across all 4 buckets.
   3. PyTorch Geometric graph data structures (edge_index shapes, valid indices, self-loops).
   4. Deterministic reproducibility under fixed seed.
 """
@@ -19,6 +19,7 @@ import pytest
 import torch
 from services.gnn_kt.src.graph_builder import (
     build_combined_graph,
+    build_hierarchical_graph,
     build_transition_graph,
 )
 from services.gnn_kt.src.preprocess import (
@@ -149,6 +150,41 @@ def test_zero_leakage_transition_graph(tmp_path) -> None:
     assert edge_index.dtype == torch.long
     assert edge_weight.dtype == torch.float32
     assert torch.all(edge_weight > 0)
+
+
+def test_hierarchical_graph_fallback(tmp_path) -> None:
+    """Verify level2_id and level1_id fallback for isolated concepts."""
+    content_csv = tmp_path / "Info_Content.csv"
+    # c_0 and c_1 share level4
+    # c_2 is isolated in level4/level3, but shares level2 with c_0 and c_1
+    # c_3 is unique in level2, but shares level1 with c_0..c_2
+    data = pd.DataFrame({
+        "ucid": ["c_0", "c_1", "c_2", "c_3"],
+        "level1_id": ["L1_ALL", "L1_ALL", "L1_ALL", "L1_ALL"],
+        "level2_id": ["L2_A", "L2_A", "L2_A", "L2_B"],
+        "level3_id": ["L3_A", "L3_A", "L3_B", "L3_C"],
+        "level4_id": ["L4_A", "L4_A", "L4_B", "L4_C"],
+    })
+    data.to_csv(content_csv, index=False)
+
+    concept2idx = {"c_0": 0, "c_1": 1, "c_2": 2, "c_3": 3}
+    edge_index, edge_weight = build_hierarchical_graph(content_csv, concept2idx)
+
+    edges = set(zip(edge_index[0].tolist(), edge_index[1].tolist(), strict=False))
+    pairs = zip(edge_index[0].tolist(), edge_index[1].tolist(), strict=False)
+    weights = dict(zip(pairs, edge_weight.tolist(), strict=False))
+
+    # c_0 and c_1 share L4 -> weight 1.0
+    assert (0, 1) in edges
+    assert weights[(0, 1)] == 1.0
+
+    # c_2 connects to c_0 and c_1 via L2 -> weight 0.5
+    assert (2, 0) in edges
+    assert weights[(2, 0)] == 0.5
+
+    # c_3 connects to c_0..c_2 via L1 -> weight 0.25
+    assert (3, 0) in edges
+    assert weights[(3, 0)] == 0.25
 
 
 def test_combined_graph_structure() -> None:
