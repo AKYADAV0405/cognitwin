@@ -31,19 +31,21 @@ logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(me
 logger = logging.getLogger(__name__)
 
 # Styling configuration
-plt.rcParams.update({
-    "font.family": "sans-serif",
-    "font.size": 11,
-    "axes.titlesize": 13,
-    "axes.labelsize": 11,
-    "xtick.labelsize": 10,
-    "ytick.labelsize": 10,
-    "legend.fontsize": 10,
-    "figure.titlesize": 14,
-    "axes.grid": True,
-    "grid.alpha": 0.3,
-    "grid.linestyle": "--",
-})
+plt.rcParams.update(
+    {
+        "font.family": "sans-serif",
+        "font.size": 11,
+        "axes.titlesize": 13,
+        "axes.labelsize": 11,
+        "xtick.labelsize": 10,
+        "ytick.labelsize": 10,
+        "legend.fontsize": 10,
+        "figure.titlesize": 14,
+        "axes.grid": True,
+        "grid.alpha": 0.3,
+        "grid.linestyle": "--",
+    }
+)
 
 
 def plot_baseline_comparison(
@@ -70,9 +72,7 @@ def plot_baseline_comparison(
 
             # Try Macro-F1 or Binary-F1
             f1_col = (
-                "Next-Response Macro-F1"
-                if "Next-Response Macro-F1" in row
-                else "Next-Response F1"
+                "Next-Response Macro-F1" if "Next-Response Macro-F1" in row else "Next-Response F1"
             )
             f1_str = row[f1_col].split("±")[0].strip()
             f1_means.append(float(f1_str) if f1_str != "N/A" else 0.0)
@@ -81,12 +81,8 @@ def plot_baseline_comparison(
     width = 0.35
 
     fig, ax = plt.subplots(figsize=(8, 5), dpi=300)
-    rects1 = ax.bar(
-        x - width / 2, auc_means, width, label="Next-Response ROC-AUC", color="#2563EB"
-    )
-    rects2 = ax.bar(
-        x + width / 2, f1_means, width, label="Next-Response Macro-F1", color="#10B981"
-    )
+    rects1 = ax.bar(x - width / 2, auc_means, width, label="Next-Response ROC-AUC", color="#2563EB")
+    rects2 = ax.bar(x + width / 2, f1_means, width, label="Next-Response Macro-F1", color="#10B981")
 
     ax.set_ylabel("Metric Value")
     ax.set_title("Model Benchmarking on Junyi Academy 2020", fontweight="bold")
@@ -152,8 +148,13 @@ def plot_retention_by_bucket(
     ax1.set_xlabel("Retention Delay Bucket (Study Interval)")
     ax1.set_ylabel("Retention ROC-AUC", color=color_auc, fontweight="bold")
     line1 = ax1.plot(
-        buckets, aucs, color=color_auc, marker="o", linewidth=2.5, markersize=8,
-        label="Retention ROC-AUC"
+        buckets,
+        aucs,
+        color=color_auc,
+        marker="o",
+        linewidth=2.5,
+        markersize=8,
+        label="Retention ROC-AUC",
     )
     ax1.tick_params(axis="y", labelcolor=color_auc)
     ax1.set_ylim(0.5, 0.9)
@@ -163,8 +164,14 @@ def plot_retention_by_bucket(
     color_brier = "#DC2626"
     ax2.set_ylabel("Brier Score (Lower is Better)", color=color_brier, fontweight="bold")
     line2 = ax2.plot(
-        buckets, briers, color=color_brier, marker="s", linestyle="--", linewidth=2.0,
-        markersize=7, label="Brier Score"
+        buckets,
+        briers,
+        color=color_brier,
+        marker="s",
+        linestyle="--",
+        linewidth=2.0,
+        markersize=7,
+        label="Brier Score",
     )
     ax2.tick_params(axis="y", labelcolor=color_brier)
     ax2.set_ylim(0.0, 0.3)

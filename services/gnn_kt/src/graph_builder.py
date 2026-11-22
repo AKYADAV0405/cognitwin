@@ -156,9 +156,7 @@ def build_transition_graph(
     train_df = pd.read_parquet(train_parquet, columns=cols)
 
     # Ensure chronological order
-    train_df = train_df.sort_values(by=["uuid", "timestamp_sec", "orig_idx"]).reset_index(
-        drop=True
-    )
+    train_df = train_df.sort_values(by=["uuid", "timestamp_sec", "orig_idx"]).reset_index(drop=True)
 
     # Count consecutive distinct concept transitions: T_ij
     transition_counts: dict[tuple[int, int], int] = defaultdict(int)
@@ -284,9 +282,7 @@ def run_graph_construction(
     # 1. Build Curriculum Hierarchy Graph
     print("\n[1/3] Building Curriculum Hierarchy Graph (A_hier.pt)...")
     hier_edge_index, hier_edge_weight = build_hierarchical_graph(info_content_csv, concept2idx)
-    data_hier = Data(
-        edge_index=hier_edge_index, edge_weight=hier_edge_weight, num_nodes=num_nodes
-    )
+    data_hier = Data(edge_index=hier_edge_index, edge_weight=hier_edge_weight, num_nodes=num_nodes)
     torch.save(data_hier, data_proc_dir / "A_hier.pt")
     num_hier_edges = hier_edge_index.size(1) if hier_edge_index.numel() > 0 else 0
     print(f"  A_hier: {num_hier_edges:,} bidirectional edges")
@@ -315,9 +311,7 @@ def run_graph_construction(
         num_nodes=num_nodes,
         alpha_hier=alpha_hier,
     )
-    data_comb = Data(
-        edge_index=comb_edge_index, edge_weight=comb_edge_weight, num_nodes=num_nodes
-    )
+    data_comb = Data(edge_index=comb_edge_index, edge_weight=comb_edge_weight, num_nodes=num_nodes)
     torch.save(data_comb, data_proc_dir / "A_combined.pt")
     num_comb_edges = comb_edge_index.size(1)
     density = float(num_comb_edges / (num_nodes * num_nodes))

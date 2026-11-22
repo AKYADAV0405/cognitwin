@@ -237,12 +237,8 @@ def evaluate_dataloader(
 
                 if ret_mask.any():
                     y_ret_true.extend(ret_target[ret_mask].cpu().numpy().astype(int).tolist())
-                    y_ret_pred.extend(
-                        pred_retention[ret_mask].cpu().numpy().astype(float).tolist()
-                    )
-                    y_ret_bucket.extend(
-                        ret_bucket[ret_mask].cpu().numpy().astype(int).tolist()
-                    )
+                    y_ret_pred.extend(pred_retention[ret_mask].cpu().numpy().astype(float).tolist())
+                    y_ret_bucket.extend(ret_bucket[ret_mask].cpu().numpy().astype(int).tolist())
 
     resp_true_arr = np.array(y_resp_true, dtype=int)
     resp_pred_arr = np.array(y_resp_pred, dtype=float)

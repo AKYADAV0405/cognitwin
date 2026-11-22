@@ -422,9 +422,7 @@ def train_model(
         else:
             patience_counter += 1
             if patience_counter >= patience and not fast_dev_run:
-                logger.info(
-                    "Early stopping triggered at epoch %d (patience=%d).", epoch, patience
-                )
+                logger.info("Early stopping triggered at epoch %d (patience=%d).", epoch, patience)
                 break
 
     # Save run summary metrics

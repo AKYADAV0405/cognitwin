@@ -31,18 +31,20 @@ from torch_geometric.data import Data
 
 def test_retention_bucket_assignment() -> None:
     """Test delay bucketing across all edge boundaries."""
-    deltas = np.array([
-        -10.0,      # invalid (<=0) -> -1
-        0.0,        # invalid (<=0) -> -1
-        60.0,       # 1 min -> 0 (<1h)
-        3600.0,     # exact 1h -> 0 (<1h)
-        3601.0,     # 1h + 1s -> 1 (1h-24h)
-        86400.0,    # exact 24h -> 1 (1h-24h)
-        86401.0,    # 1d + 1s -> 2 (1d-7d)
-        604800.0,   # exact 7d -> 2 (1d-7d)
-        604801.0,   # 7d + 1s -> 3 (>7d)
-        1000000.0,  # >7d -> 3 (>7d)
-    ])
+    deltas = np.array(
+        [
+            -10.0,  # invalid (<=0) -> -1
+            0.0,  # invalid (<=0) -> -1
+            60.0,  # 1 min -> 0 (<1h)
+            3600.0,  # exact 1h -> 0 (<1h)
+            3601.0,  # 1h + 1s -> 1 (1h-24h)
+            86400.0,  # exact 24h -> 1 (1h-24h)
+            86401.0,  # 1d + 1s -> 2 (1d-7d)
+            604800.0,  # exact 7d -> 2 (1d-7d)
+            604801.0,  # 7d + 1s -> 3 (>7d)
+            1000000.0,  # >7d -> 3 (>7d)
+        ]
+    )
 
     bucket_ids, bucket_names = assign_retention_buckets(deltas)
 
@@ -60,14 +62,16 @@ def test_retention_bucket_assignment() -> None:
 
 def test_delayed_retention_construction() -> None:
     """Test retention target calculation and practice history summary."""
-    data = pd.DataFrame({
-        "uuid": ["user_1", "user_1", "user_1", "user_1", "user_2"],
-        "ucid": ["c_1", "c_2", "c_1", "c_1", "c_1"],
-        "concept_idx": [0, 1, 0, 0, 0],
-        "orig_idx": [0, 1, 2, 3, 4],
-        "timestamp_sec": [1000, 2000, 5000, 15000, 3000],
-        "is_correct": [1, 0, 1, 0, 1],
-    })
+    data = pd.DataFrame(
+        {
+            "uuid": ["user_1", "user_1", "user_1", "user_1", "user_2"],
+            "ucid": ["c_1", "c_2", "c_1", "c_1", "c_1"],
+            "concept_idx": [0, 1, 0, 0, 0],
+            "orig_idx": [0, 1, 2, 3, 4],
+            "timestamp_sec": [1000, 2000, 5000, 15000, 3000],
+            "is_correct": [1, 0, 1, 0, 1],
+        }
+    )
 
     full_df, ret_df = compute_delayed_retention(data)
 
@@ -158,13 +162,15 @@ def test_hierarchical_graph_fallback(tmp_path) -> None:
     # c_0 and c_1 share level4
     # c_2 is isolated in level4/level3, but shares level2 with c_0 and c_1
     # c_3 is unique in level2, but shares level1 with c_0..c_2
-    data = pd.DataFrame({
-        "ucid": ["c_0", "c_1", "c_2", "c_3"],
-        "level1_id": ["L1_ALL", "L1_ALL", "L1_ALL", "L1_ALL"],
-        "level2_id": ["L2_A", "L2_A", "L2_A", "L2_B"],
-        "level3_id": ["L3_A", "L3_A", "L3_B", "L3_C"],
-        "level4_id": ["L4_A", "L4_A", "L4_B", "L4_C"],
-    })
+    data = pd.DataFrame(
+        {
+            "ucid": ["c_0", "c_1", "c_2", "c_3"],
+            "level1_id": ["L1_ALL", "L1_ALL", "L1_ALL", "L1_ALL"],
+            "level2_id": ["L2_A", "L2_A", "L2_A", "L2_B"],
+            "level3_id": ["L3_A", "L3_A", "L3_B", "L3_C"],
+            "level4_id": ["L4_A", "L4_A", "L4_B", "L4_C"],
+        }
+    )
     data.to_csv(content_csv, index=False)
 
     concept2idx = {"c_0": 0, "c_1": 1, "c_2": 2, "c_3": 3}
@@ -205,9 +211,7 @@ def test_combined_graph_structure() -> None:
         alpha_hier=0.5,
     )
 
-    comb_edges = set(
-        zip(comb_edge_index[0].tolist(), comb_edge_index[1].tolist(), strict=False)
-    )
+    comb_edges = set(zip(comb_edge_index[0].tolist(), comb_edge_index[1].tolist(), strict=False))
 
     # Must contain self-loops for all 4 nodes
     for i in range(num_nodes):

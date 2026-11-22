@@ -50,19 +50,23 @@ class KTSequenceDataset(Dataset):
         df = df.sort_values(by=["uuid", "timestamp_sec", "orig_idx"]).reset_index(drop=True)
 
         # Pre-extract required columns as numpy arrays for high-speed indexing
-        continuous_features = np.column_stack([
-            df["norm_delta_t"].values.astype(np.float32),
-            df["norm_log_sec"].values.astype(np.float32),
-            df["norm_log_hint_cnt"].values.astype(np.float32),
-            df["norm_log_attempt"].values.astype(np.float32),
-        ])
+        continuous_features = np.column_stack(
+            [
+                df["norm_delta_t"].values.astype(np.float32),
+                df["norm_log_sec"].values.astype(np.float32),
+                df["norm_log_hint_cnt"].values.astype(np.float32),
+                df["norm_log_attempt"].values.astype(np.float32),
+            ]
+        )
 
         # Practice summary features for retention head v_{u,c,t}
-        v_summary_features = np.column_stack([
-            np.log1p(df["prior_concept_attempts"].values).astype(np.float32),
-            df["prior_concept_accuracy"].values.astype(np.float32),
-            df["log_time_since_prev_practice"].values.astype(np.float32),
-        ])
+        v_summary_features = np.column_stack(
+            [
+                np.log1p(df["prior_concept_attempts"].values).astype(np.float32),
+                df["prior_concept_accuracy"].values.astype(np.float32),
+                df["log_time_since_prev_practice"].values.astype(np.float32),
+            ]
+        )
 
         # Group by student uuid
         grouped_indices = df.groupby("uuid", sort=False).indices
@@ -82,6 +86,7 @@ class KTSequenceDataset(Dataset):
                     continue
 
                 sample = {
+                    "uuid": str(_uuid),
                     "concept_idx": df["concept_idx"].values[sub_indices].astype(np.int64),
                     "problem_idx": df["problem_idx"].values[sub_indices].astype(np.int64),
                     "is_correct": df["is_correct"].values[sub_indices].astype(np.int64),
@@ -197,7 +202,7 @@ def collate_kt_batch(batch: list[dict[str, np.ndarray]]) -> dict[str, torch.Tens
             np.where(has_ret, item["retention_bucket_id"], -1).astype(np.int64)
         )
 
-    return {
+    batch_dict = {
         "mask": mask,
         "concept_idx": concept_idx,
         "problem_idx": problem_idx,
@@ -216,6 +221,9 @@ def collate_kt_batch(batch: list[dict[str, np.ndarray]]) -> dict[str, torch.Tens
         "ret_bucket": ret_bucket,
         "ret_mask": ret_mask,
     }
+    if len(batch) > 0 and "uuid" in batch[0]:
+        batch_dict["uuid"] = [item["uuid"] for item in batch]
+    return batch_dict
 
 
 def create_dataloader(

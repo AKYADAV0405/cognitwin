@@ -355,9 +355,7 @@ def run_preprocessing(
     df["is_hint_used"] = (df["used_hint_cnt"] > 0).astype(np.int64)
     df["log_hint_cnt"] = np.log1p(np.clip(df["used_hint_cnt"].values, 0, 50)).astype(np.float32)
     df["log_sec"] = np.log1p(np.clip(df["total_sec_taken"].values, 0, 3600)).astype(np.float32)
-    df["log_attempt"] = np.log1p(np.clip(df["total_attempt_cnt"].values, 0, 50)).astype(
-        np.float32
-    )
+    df["log_attempt"] = np.log1p(np.clip(df["total_attempt_cnt"].values, 0, 50)).astype(np.float32)
 
     # Elapsed time between successive interactions: delta_t = log1p(max(0, tau_t - tau_{t-1}))
     prev_student_time = df.groupby("uuid")["timestamp_sec"].diff().fillna(0.0).values

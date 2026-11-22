@@ -94,3 +94,85 @@ def test_train_and_evaluate_fast_dev_cycle(tmp_path: Path) -> None:
 
     assert 0.0 <= eval_metrics["response_auc"] <= 1.0
     assert 0.0 <= eval_metrics["response_ece"] <= 1.0
+
+
+def test_final_validation_audit(tmp_path: Path) -> None:
+    """Verify final validation audit executes cleanly and exports all 5 advisor checks."""
+    import torch
+    from services.gnn_kt.src.final_validation_audit import (
+        generate_unified_markdown_report,
+        run_graph_ablation_deep_dive,
+        run_independent_mastery_validation,
+        run_paired_statistical_significance,
+        run_retention_label_forensic_audit,
+        run_seed_level_verification,
+    )
+
+    data_dir = Path("data/processed")
+    if not (data_dir / "test.parquet").exists():
+        pytest.skip("Preprocessed dataset not found. Run preprocess.py first.")
+
+    checkpoints_dir = Path("services/gnn_kt/outputs/checkpoints")
+    runs_dir = Path("services/gnn_kt/outputs/runs")
+    results_dir = tmp_path / "results"
+    results_dir.mkdir(parents=True, exist_ok=True)
+
+    device = torch.device("cpu")
+
+    # 1. Seed-level verification
+    check1, csv_rows = run_seed_level_verification(
+        runs_dir=runs_dir,
+        results_dir=results_dir,
+        allow_partial=True,
+    )
+    assert "total_runs_found" in check1
+    assert (results_dir / "per_seed_results.csv").exists()
+
+    # 2. Graph ablation deep-dive
+    check2 = run_graph_ablation_deep_dive(
+        checkpoints_dir=checkpoints_dir,
+        data_dir=data_dir,
+        results_dir=results_dir,
+        device=device,
+    )
+    assert "embedding_geometry" in check2
+    assert (results_dir / "graph_ablation_audit.json").exists()
+
+    # 3. Independent mastery validation
+    tpa_ckpt = [
+        checkpoints_dir / "tpa_gkt_full_seed42_best.pt",
+        checkpoints_dir / "tpa_gkt_full_seed42_fastdev_best.pt",
+    ]
+    check3 = run_independent_mastery_validation(
+        checkpoint_candidates=tpa_ckpt,
+        data_dir=data_dir,
+        results_dir=results_dir,
+        device=device,
+    )
+    assert (results_dir / "mastery_independent_eval.json").exists()
+
+    # 4. Retention forensic audit
+    check4 = run_retention_label_forensic_audit(
+        data_dir=data_dir,
+        checkpoints_dir=checkpoints_dir,
+        results_dir=results_dir,
+        device=device,
+    )
+    assert "zero_same_concept_leakage_assert" in check4
+    assert (results_dir / "retention_label_audit.json").exists()
+
+    # 5. Paired statistical significance (small B=30 for fast unit test)
+    check5 = run_paired_statistical_significance(
+        checkpoints_dir=checkpoints_dir,
+        data_dir=data_dir,
+        results_dir=results_dir,
+        device=device,
+        n_bootstrap=30,
+    )
+    assert (results_dir / "statistical_tests.csv").exists()
+
+    # 6. Report generation
+    report_path = results_dir / "final_experiment_validation.md"
+    generate_unified_markdown_report(check1, check2, check3, check4, check5, report_path)
+    assert report_path.exists()
+    assert report_path.stat().st_size > 500

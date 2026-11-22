@@ -111,12 +111,12 @@ def test_tpagkt_forward_backward_gat(
 @pytest.mark.parametrize(
     "ablation_config",
     [
-        {"use_graph": False},                                    # without_gnn_propagation
-        {"graph_type": "trans_only"},                            # without_hier_graph
-        {"graph_type": "hier_only"},                             # without_trans_graph
-        {"use_time_decay": False},                               # without_time_decay
-        {"use_attempt_hint": False},                             # without_attempt_hint
-        {"use_retention_head": False},                           # without_retention_head
+        {"use_graph": False},  # without_gnn_propagation
+        {"graph_type": "trans_only"},  # without_hier_graph
+        {"graph_type": "hier_only"},  # without_trans_graph
+        {"use_time_decay": False},  # without_time_decay
+        {"use_attempt_hint": False},  # without_attempt_hint
+        {"use_retention_head": False},  # without_retention_head
     ],
 )
 def test_tpagkt_ablations(
