@@ -21,6 +21,17 @@ from torch_geometric.data import Data
 from torch_geometric.nn import GCNConv
 
 
+def _assert_embedding_bounds(name: str, indices: torch.Tensor, upper: int) -> None:
+    """Validate that tensor indices are strictly non-negative and within embedding size."""
+    if indices.numel() > 0:
+        idx_min = int(indices.min().item())
+        idx_max = int(indices.max().item())
+        assert 0 <= idx_min and idx_max < upper, (
+            f"Index out of bounds for '{name}': min={idx_min}, max={idx_max}, "
+            f"expected in [0, {upper})"
+        )
+
+
 # ==============================================================================
 # Baseline 1: DKT (Deep Knowledge Tracing)
 # ==============================================================================
@@ -85,6 +96,12 @@ class DKT(nn.Module):
         next_problem = batch["next_problem"].to(device)
         next_correct = batch["next_correct"].to(device)
         next_mask = batch["next_mask"].to(device)
+
+        _assert_embedding_bounds("concept_idx", concept_idx, self.concept_emb.num_embeddings)
+        _assert_embedding_bounds("problem_idx", problem_idx, self.problem_emb.num_embeddings)
+        _assert_embedding_bounds("is_correct", is_correct, self.correct_emb.num_embeddings)
+        _assert_embedding_bounds("next_concept", next_concept, self.concept_emb.num_embeddings)
+        _assert_embedding_bounds("next_problem", next_problem, self.problem_emb.num_embeddings)
 
         e_c = self.concept_emb(concept_idx)
         e_q = self.problem_emb(problem_idx)
@@ -184,6 +201,14 @@ class SAKT(nn.Module):
 
         b, seq_len = concept_idx.shape
         pos = torch.arange(seq_len, device=device).unsqueeze(0).expand(b, seq_len)
+
+        _assert_embedding_bounds("concept_idx", concept_idx, self.concept_emb.num_embeddings)
+        _assert_embedding_bounds("problem_idx", problem_idx, self.problem_emb.num_embeddings)
+        _assert_embedding_bounds("is_correct", is_correct, self.correct_emb.num_embeddings)
+        _assert_embedding_bounds("next_concept", next_concept, self.concept_emb.num_embeddings)
+        _assert_embedding_bounds("next_problem", next_problem, self.problem_emb.num_embeddings)
+        _assert_embedding_bounds("pos", pos, self.pos_emb.num_embeddings)
+
         pos_embedding = self.pos_emb(pos)
 
         # Interaction representation (Keys and Values)
@@ -333,6 +358,12 @@ class GKT(nn.Module):
         next_problem = batch["next_problem"].to(device)
         next_correct = batch["next_correct"].to(device)
         next_mask = batch["next_mask"].to(device)
+
+        _assert_embedding_bounds("concept_idx", concept_idx, self.num_concepts)
+        _assert_embedding_bounds("problem_idx", problem_idx, self.problem_emb.num_embeddings)
+        _assert_embedding_bounds("is_correct", is_correct, self.correct_emb.num_embeddings)
+        _assert_embedding_bounds("next_concept", next_concept, self.num_concepts)
+        _assert_embedding_bounds("next_problem", next_problem, self.problem_emb.num_embeddings)
 
         e_c = g[concept_idx]
         e_q = self.problem_emb(problem_idx)

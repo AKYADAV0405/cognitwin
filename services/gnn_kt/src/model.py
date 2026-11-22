@@ -21,6 +21,17 @@ from torch_geometric.data import Data
 from torch_geometric.nn import GATConv, GCNConv
 
 
+def _assert_embedding_bounds(name: str, indices: torch.Tensor, upper: int) -> None:
+    """Validate that tensor indices are strictly non-negative and within embedding size."""
+    if indices.numel() > 0:
+        idx_min = int(indices.min().item())
+        idx_max = int(indices.max().item())
+        assert 0 <= idx_min and idx_max < upper, (
+            f"Index out of bounds for '{name}': min={idx_min}, max={idx_max}, "
+            f"expected in [0, {upper})"
+        )
+
+
 class TPAGKT(nn.Module):
     """
     Temporal Prerequisite-Aware Graph Knowledge Tracing (TPA-GKT) Model.
@@ -264,6 +275,12 @@ class TPAGKT(nn.Module):
         g = self.encode_graph(edge_index=edge_index, edge_weight=edge_weight)
 
         # Stage 2: Interaction Representation & Temporal Recurrent Update
+        _assert_embedding_bounds("problem_idx", problem_idx, self.problem_emb.num_embeddings)
+        _assert_embedding_bounds("concept_idx", concept_idx, self.num_concepts)
+        _assert_embedding_bounds("is_correct", is_correct, self.correct_emb.num_embeddings)
+        _assert_embedding_bounds("difficulty_id", difficulty_id, self.diff_emb.num_embeddings)
+        _assert_embedding_bounds("is_hint_used", is_hint_used, self.hint_emb.num_embeddings)
+
         e_prob = self.problem_emb(problem_idx)
         e_concept_graph = g[concept_idx]
         e_corr = self.correct_emb(is_correct)
@@ -285,6 +302,9 @@ class TPAGKT(nn.Module):
         next_correct = batch["next_correct"].to(device)
         next_mask = batch["next_mask"].to(device)
 
+        _assert_embedding_bounds("next_concept", next_concept, self.num_concepts)
+        _assert_embedding_bounds("next_problem", next_problem, self.problem_emb.num_embeddings)
+
         next_g = g[next_concept]
         next_p_emb = self.problem_emb(next_problem)
         response_input = torch.cat([h, next_g, next_p_emb], dim=-1)
@@ -300,6 +320,8 @@ class TPAGKT(nn.Module):
         ret_v_summary = batch["ret_v_summary"].to(device)  # [B, L, 3]
         ret_target = batch["ret_target"].to(device)
         ret_mask = batch["ret_mask"].to(device)
+
+        _assert_embedding_bounds("ret_concept", ret_concept, self.num_concepts)
 
         ret_g = g[ret_concept]
         retention_input = torch.cat([h, ret_g, ret_log_delta, ret_v_summary], dim=-1)

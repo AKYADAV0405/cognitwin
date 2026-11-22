@@ -196,20 +196,53 @@ def format_mean_std(values: list[float | None]) -> str:
 def run_experiment_suite(
     seeds: list[int],
     fast_dev_run: bool = False,
-    results_dir: str | Path = "services/gnn_kt/outputs/results",
+    results_dir: str | Path | None = None,
     checkpoints_dir: str | Path = "services/gnn_kt/outputs/checkpoints",
     processed_dir: str | Path = "data/processed",
 ) -> dict[str, Any]:
     """Execute complete benchmarking across all models, ablations, and seeds."""
+    if results_dir is None:
+        results_dir = (
+            "services/gnn_kt/outputs/results_fast_dev"
+            if fast_dev_run
+            else "services/gnn_kt/outputs/results"
+        )
     res_path = Path(results_dir)
     ckpt_path = Path(checkpoints_dir)
     proc_path = Path(processed_dir)
     res_path.mkdir(parents=True, exist_ok=True)
     ckpt_path.mkdir(parents=True, exist_ok=True)
 
+    # Clear previous stale CSVs and summary JSON to prevent stale results mixing
+    for stale_filename in [
+        "table3_results.csv",
+        "ablations.csv",
+        "retention_buckets.csv",
+        "all_results_summary.json",
+    ]:
+        stale_file = res_path / stale_filename
+        if stale_file.exists():
+            stale_file.unlink()
+            logger.info("Cleared stale result file: %s", stale_file)
+
     test_parquet = proc_path / "test.parquet"
     if not test_parquet.exists():
         raise FileNotFoundError(f"test.parquet not found in {proc_path}. Run preprocess.py first.")
+
+    # Load dataset fingerprint from metadata.json
+    meta_path = proc_path / "metadata.json"
+    dataset_fingerprint: dict[str, Any] = {}
+    if meta_path.exists():
+        with open(meta_path, encoding="utf-8") as f:
+            meta = json.load(f)
+            dataset_fingerprint = {
+                "dataset_name": meta.get("dataset_name"),
+                "seed": meta.get("seed"),
+                "fast_dev_run": meta.get("fast_dev_run"),
+                "num_concepts": meta.get("num_concepts"),
+                "num_problems": meta.get("num_problems"),
+                "cohort_counts": meta.get("cohort_counts"),
+            }
 
     # Results store: {exp_key: {seed: metrics_dict}}
     all_runs: dict[str, dict[int, dict[str, Any]]] = {k: {} for k in EXPERIMENT_CONFIGS}
@@ -223,6 +256,8 @@ def run_experiment_suite(
         total_experiments,
         len(seeds),
     )
+    logger.info("Target Results Directory: %s", res_path)
+    logger.info("Dataset Fingerprint: %s", json.dumps(dataset_fingerprint, indent=2))
     logger.info("=" * 70)
 
     for exp_key, spec in EXPERIMENT_CONFIGS.items():
@@ -403,12 +438,17 @@ def run_experiment_suite(
         writer.writerows(bucket_rows)
     logger.info("Retention buckets table exported to %s", retention_buckets_path)
 
-    # Export full summary JSON
+    # Export full summary JSON with dataset fingerprint
     summary_json_path = res_path / "all_results_summary.json"
+    summary_payload = {
+        "dataset_fingerprint": dataset_fingerprint,
+        "runs": all_runs,
+    }
     with open(summary_json_path, "w", encoding="utf-8") as f:
-        json.dump(all_runs, f, indent=2)
+        json.dump(summary_payload, f, indent=2)
 
     return {
+        "dataset_fingerprint": dataset_fingerprint,
         "all_runs": all_runs,
         "table3_path": str(table3_path),
         "ablations_path": str(ablations_path),

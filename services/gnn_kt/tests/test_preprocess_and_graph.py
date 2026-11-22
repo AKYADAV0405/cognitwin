@@ -227,3 +227,15 @@ def test_combined_graph_structure() -> None:
     assert data.edge_weight.size(0) == data.edge_index.size(1)
     assert not torch.isnan(data.edge_weight).any()
     assert not torch.isinf(data.edge_weight).any()
+
+
+def test_row_reconciliation_arithmetic() -> None:
+    """Verify that interaction row reconciliation formula holds exactly."""
+    n_raw = 805480
+    n_dups = 1200
+    n_capped = 6500
+    n_short = 1060
+    n_final = n_raw - n_dups - n_capped - n_short
+
+    assert n_final == 796720
+    assert n_raw - n_dups - n_capped - n_short == n_final

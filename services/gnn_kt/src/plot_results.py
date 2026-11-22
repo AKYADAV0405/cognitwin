@@ -204,8 +204,9 @@ def plot_calibration_reliability(
     with open(summary_json_path, encoding="utf-8") as f:
         data = json.load(f)
 
-    # Extract TPA-GKT full results
-    tpa_full = data.get("tpa_gkt_full", {})
+    # Extract TPA-GKT full results (supports both flat and nested 'runs' format)
+    runs = data.get("runs", data)
+    tpa_full = runs.get("tpa_gkt_full", {})
     if not tpa_full:
         logger.warning("TPA-GKT full results not found in summary JSON.")
         return

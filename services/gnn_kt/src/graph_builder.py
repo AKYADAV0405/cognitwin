@@ -2,12 +2,14 @@
 Temporal Prerequisite-Aware Graph Knowledge Tracing (TPA-GKT)
 Graph Builder Module: Dual Knowledge Graph Construction
 
-Builds:
-  1. A_hier.pt    : Curriculum hierarchy graph from Info_Content.csv (level4/level3/level2 subtrees)
-  2. A_trans.pt   : Empirical transition graph strictly from train.parquet (Zero leakage)
+Constructs structural and behavioral proxies for knowledge component relationships:
+  1. A_hier.pt    : Curriculum Hierarchy Graph from Info_Content.csv (structural proxy
+                    derived from level4/level3/level2 curriculum subtrees)
+  2. A_trans.pt   : Empirical Behavioral Transition Graph strictly from train.parquet
+                    (behavioral proxy capturing sequential learner progression, zero leakage)
   3. A_combined.pt: Linear combination A_comb = alpha * A_hier + (1 - alpha) * A_trans + I
 
-Paper Scope: Section IV.D (Dual Graph Formulation)
+Paper Scope: Section IV.D (Dual Graph Formulation as Prerequisite Proxies)
 """
 
 from __future__ import annotations
@@ -48,8 +50,9 @@ def build_hierarchical_graph(
     concept2idx: dict[str, int],
 ) -> tuple[torch.Tensor, torch.Tensor]:
     """
-    Construct prerequisite curriculum hierarchy graph A_hier from Info_Content.csv.
+    Construct Curriculum Hierarchy Graph A_hier from Info_Content.csv.
 
+    Serves as a structural proxy for prerequisite relationships.
     Concepts sharing level4_id (or level3_id if level4_id is absent) are connected
     with bidirectional edges of weight 1.0.
     For any concept with 0 neighbors at level4/3, falls back to connecting it to

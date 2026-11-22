@@ -401,3 +401,75 @@ def test_retention_future_perturbation_invariance(
         "TPA-GKT delayed retention head violated temporal causality! Future interaction "
         "changes leaked into past retention predictions."
     )
+
+
+def test_embedding_bounds_all_models(
+    sample_batch: dict[str, torch.Tensor],
+    graph_data: tuple[torch.Tensor, torch.Tensor],
+) -> None:
+    """Verify runtime assertions catch out-of-bounds embedding indices across all models."""
+    edge_index, edge_weight = graph_data
+    num_c = 150
+    num_p = 3000
+
+    models = [
+        ("DKT", DKT(num_concepts=num_c, num_problems=num_p, embedding_dim=32, hidden_dim=64)),
+        (
+            "SAKT",
+            SAKT(num_concepts=num_c, num_problems=num_p, embedding_dim=32, max_seq_len=100),
+        ),
+        (
+            "GKT",
+            GKT(
+                num_concepts=num_c,
+                num_problems=num_p,
+                embedding_dim=32,
+                hidden_dim=64,
+                edge_index=edge_index,
+                edge_weight=edge_weight,
+            ),
+        ),
+        (
+            "TPA-GKT",
+            TPAGKT(
+                num_concepts=num_c,
+                num_problems=num_p,
+                embedding_dim=32,
+                hidden_dim=64,
+                edge_index=edge_index,
+                edge_weight=edge_weight,
+            ),
+        ),
+    ]
+
+    for _model_name, model in models:
+        model.eval()
+
+        # 1. Valid batch must pass cleanly
+        with torch.no_grad():
+            out = model(sample_batch)
+            assert out is not None
+
+        # 2. Out-of-bounds problem_idx >= num_problems must raise AssertionError (NO clamping!)
+        bad_prob_batch = {
+            k: v.clone() if isinstance(v, torch.Tensor) else v for k, v in sample_batch.items()
+        }
+        bad_prob_batch["problem_idx"][0, 0] = num_p  # exactly at boundary
+        with pytest.raises(AssertionError, match="Index out of bounds for 'problem_idx'"):
+            model(bad_prob_batch)
+
+        # 3. Negative problem_idx must raise AssertionError
+        bad_neg_prob_batch = {
+            k: v.clone() if isinstance(v, torch.Tensor) else v for k, v in sample_batch.items()
+        }
+        bad_neg_prob_batch["problem_idx"][0, 0] = -1
+        with pytest.raises(AssertionError, match="Index out of bounds for 'problem_idx'"):
+            model(bad_neg_prob_batch)
+
+        # 4. Out-of-bounds concept_idx >= num_concepts must raise AssertionError
+        bad_concept_batch = {
+            k: v.clone() if isinstance(v, torch.Tensor) else v for k, v in sample_batch.items()
+        }
+        bad_concept_batch["concept_idx"][0, 0] = num_c
+        with pytest.raises(AssertionError, match="Index out of bounds for 'concept_idx'"):
+            model(bad_concept_batch)

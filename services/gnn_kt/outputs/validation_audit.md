@@ -137,3 +137,18 @@ From our verified `--fast-dev-run` sanity check (seed 42, 2 epochs on fast-dev d
 ### Research Hypotheses for Full Colab GPU Training (50 Epochs, 5,000 Students)
 1. **Short-Horizon vs. Long-Horizon Separation**: In immediate next-step prediction ($t \to t+1$), local sequential momentum dominates, leading to similar Next-Response AUC across graph variants. However, in **delayed retention over long gaps ($> 7$ days)**, prerequisite graph structure ($A_{\text{hier}}$) and temporal decay ($\Delta t$) prevent catastrophic forgetting, which will be validated by the multi-epoch GPU run.
 2. **Behavioral Features Impact**: Removing attempt counts and hint features (`w/o Attempt & Hint`) drops Next-Response AUC from 0.7393 to 0.7344 even at 2 epochs, confirming that learner dwell time and cognitive difficulty provide orthogonal predictive power beyond concept identity.
+
+---
+
+## 7. Dual Knowledge Graph Grounding & Academic Terminology
+
+### 7.1 Taxonomy Structure vs. Causal Prerequisite DAGs
+In knowledge tracing literature, graphs are frequently assumed to be expert-crafted causal prerequisite DAGs (Directed Acyclic Graphs). However, in non-synthetic platforms such as Junyi Academy 2020:
+- `Info_Content.csv` supplies a 4-level curricular taxonomy (`level1_id` through `level4_id`), representing curriculum units, topics, and subtopics, rather than direct causal prerequisites.
+- Learner trajectories in `Log_Problem.csv` reflect empirical navigation behavior, including teacher assignments, self-directed exploration, and exam review alongside ideal pedagogical ordering.
+
+### 7.2 Principled Dual Proxy Definitions
+To maintain academic rigor and transparency, our graph components are explicitly defined as:
+1. **$A_{\text{hier}}$ (Curriculum Hierarchy Graph)**: Represents static taxonomy and topic-proximity relationships derived from the Junyi content taxonomy tree. It acts as a *structural proxy* for knowledge component relatedness and curriculum clustering.
+2. **$A_{\text{trans}}$ (Empirical Behavioral Transition Graph)**: Represents dynamic learner traversal tendencies fitted strictly on the Train partition ($P(j \mid i) = C_{i, j} / \sum_k C_{i, k}$). It acts as an *empirical behavioral proxy* for learner study progression.
+3. **$A_{\text{combined}}$ (Dual Composite Graph)**: Blends structural curriculum clustering ($\alpha$) with empirical sequential navigation ($1 - \alpha$), systematically disentangled via our ablation suite (`w/o Curriculum Graph` vs `w/o Transition Graph`).

@@ -60,7 +60,21 @@ def get_device() -> torch.device:
 
 
 def load_vocab_sizes(processed_dir: Path) -> tuple[int, int]:
-    """Load concept and problem vocabulary counts from processed directory."""
+    """Load concept and problem vocabulary counts from metadata.json or vocabulary files."""
+    meta_path = processed_dir / "metadata.json"
+    if meta_path.exists():
+        with open(meta_path, encoding="utf-8") as f:
+            meta = json.load(f)
+            num_concepts = int(meta.get("num_concepts", 150))
+            num_problems = int(meta.get("num_problems", 3000))
+            logger.info(
+                "Loaded vocab sizes from %s: num_concepts=%d, num_problems=%d",
+                meta_path,
+                num_concepts,
+                num_problems,
+            )
+            return num_concepts, num_problems
+
     concept_vocab_path = processed_dir / "vocab_concept.json"
     problem_vocab_path = processed_dir / "vocab_problem.json"
 
@@ -75,8 +89,13 @@ def load_vocab_sizes(processed_dir: Path) -> tuple[int, int]:
     if problem_vocab_path.exists():
         with open(problem_vocab_path, encoding="utf-8") as f:
             p_vocab = json.load(f)
-            num_problems = len(p_vocab) + 1  # include padding index 0
+            num_problems = len(p_vocab)
 
+    logger.info(
+        "Loaded vocab sizes from individual json: num_concepts=%d, num_problems=%d",
+        num_concepts,
+        num_problems,
+    )
     return num_concepts, num_problems
 
 

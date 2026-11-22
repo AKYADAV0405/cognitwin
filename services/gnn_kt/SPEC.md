@@ -68,21 +68,26 @@ At step $t+1$, given interaction history $X_{1:t}^u$ and the combined prerequisi
 
 ---
 
-### Phase 2: Dual Knowledge Graph Construction
+### Phase 2: Dual Knowledge Graph Construction (Structural & Behavioral Prerequisite Proxies)
 
-We construct a composite graph topology combining educational curriculum hierarchy with empirical learner trajectories:
+> [!NOTE] Academic Terminology & Structural Scope
+> In naturalistic educational datasets like Junyi Academy, an explicit ground-truth prerequisite DAG is not directly provided. Instead, we operationalize two principled proxies:
+> 1. $\mathbf{A}_{\text{hier}}$ is the **Curriculum Hierarchy Graph** (capturing pedagogical and thematic clustering from curriculum taxonomy levels).
+> 2. $\mathbf{A}_{\text{trans}}$ is the **Empirical Behavioral Transition Graph** (capturing learner traversal trajectories from interaction sequences).
+> Together, they serve as dual structural and empirical proxies for knowledge component dependency relationships.
 
 1. **Curriculum Hierarchy Graph ($\mathbf{A}_{\text{hier}}$)**:
-   - Derived from `Info_Content.csv` structure (`level1_id`, `level2_id`, `subject`, `topic`, `content`).
-   - Concepts sharing a common parent topic receive an undirected co-topic edge.
-   - Explicit directed prerequisite links are formed between foundational and advanced levels within the same topic subtree.
+   - Derived from `Info_Content.csv` structure (`level1_id`, `level2_id`, `level3_id`, `level4_id`, `difficulty`).
+   - Concepts sharing a common parent topic receive undirected taxonomic co-topic edges.
+   - Serves as a static structural proxy for curricular closeness.
 
-2. **Empirical Sequential Transition Graph ($\mathbf{A}_{\text{trans}}$)**:
-   - Computed strictly across training student interaction sequences:
+2. **Empirical Behavioral Transition Graph ($\mathbf{A}_{\text{trans}}$)**:
+   - Computed strictly across training student interaction sequences (zero leakage):
      $$C_{i, j} = \sum_{u \in \text{Train}} \sum_{t=1}^{T_u - 1} \mathbb{I}\left(c_t^u = i \wedge c_{t+1}^u = j\right)$$
    - Transition probability:
      $$P(j \mid i) = \frac{C_{i, j}}{\sum_k C_{i, k}}$$
    - Thresholding: Keep edge $(i, j)$ if $C_{i, j} \ge \text{min\_transition\_count}$ (e.g., 10) and $P(j \mid i) \ge \text{transition\_threshold}$ (e.g., 0.05).
+   - Serves as a behavioral empirical proxy for learner progression paths.
 
 3. **Unified Combined Adjacency ($\mathbf{A}_{\text{combined}}$)**:
    $$\mathbf{A}_{\text{combined}} = \alpha \mathbf{A}_{\text{hier}} + (1 - \alpha) \mathbf{A}_{\text{trans}}$$

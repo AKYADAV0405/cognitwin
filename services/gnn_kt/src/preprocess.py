@@ -262,7 +262,8 @@ def run_preprocessing(
         raise ValueError("No matching records found during Pass 2 filtering!")
 
     df = pd.concat(filtered_chunks, ignore_index=True)
-    print(f"  Extracted {len(df):,} interaction records for selected cohorts.")
+    n_extracted_raw = len(df)
+    print(f"  Extracted {n_extracted_raw:,} interaction records for selected cohorts.")
 
     # --------------------------------------------------------------------------
     # DATA HYGIENE: Deduplication & Boundary Clipping
@@ -289,11 +290,29 @@ def run_preprocessing(
     # Sort deterministically with monotonic orig_idx tie-breaker
     df = df.sort_values(by=["uuid", "timestamp_sec", "orig_idx"]).reset_index(drop=True)
 
-    # Optional Truncation to max_interactions per student sequence
+    # Truncation to max_interactions per student sequence
+    n_before_cap = len(df)
     if max_interactions > 0:
         df["interaction_rank"] = df.groupby("uuid").cumcount()
         df = df[df["interaction_rank"] < max_interactions].copy().reset_index(drop=True)
         df = df.drop(columns=["interaction_rank"])
+    n_capped_tail_rows = n_before_cap - len(df)
+    print(
+        f"  Sequence Cap: Dropped {n_capped_tail_rows:,} tail rows "
+        f"exceeding max_interactions={max_interactions}."
+    )
+
+    # Filter out students whose remaining interactions fell below min_interactions
+    n_before_min = len(df)
+    seq_counts = df.groupby("uuid").size()
+    valid_students_after_cap = set(seq_counts[seq_counts >= min_interactions].index)
+    df = df[df["uuid"].isin(valid_students_after_cap)].copy().reset_index(drop=True)
+    n_dropped_short_students = n_before_min - len(df)
+    if n_dropped_short_students > 0:
+        print(
+            f"  Short Student Filter: Dropped {n_dropped_short_students:,} rows "
+            f"from students below min_interactions."
+        )
 
     # Report sequence length statistics
     seq_lens = df.groupby("uuid").size()
@@ -368,33 +387,65 @@ def run_preprocessing(
     val_df = df[df["uuid"].isin(val_students)].copy().reset_index(drop=True)
     test_df = df[df["uuid"].isin(test_students)].copy().reset_index(drop=True)
 
+    n_final_split_total = len(train_df) + len(val_df) + len(test_df)
+    assert (
+        n_extracted_raw - n_dropped_dups - n_capped_tail_rows - n_dropped_short_students
+        == n_final_split_total
+    ), (
+        f"Row reconciliation arithmetic mismatch! "
+        f"{n_extracted_raw} - {n_dropped_dups} - {n_capped_tail_rows} - {n_dropped_short_students} "
+        f"!= {n_final_split_total}"
+    )
+
+    print("\n" + "=" * 78)
+    print("EXACT INTERACTION ROW RECONCILIATION")
+    print("=" * 78)
+    print(f"  Extracted Raw Rows       : {n_extracted_raw:>10,}")
+    print(f"  - Duplicate Rows Dropped : {n_dropped_dups:>10,}")
+    print(f"  - Capped Tail Rows (1000): {n_capped_tail_rows:>10,}")
+    print(f"  - Dropped Short Students : {n_dropped_short_students:>10,}")
+    print(f"  = Final Split Total      : {n_final_split_total:>10,}")
     print(f"  Train: {len(train_students):,} students, {len(train_df):,} interactions")
     print(f"  Val  : {len(val_students):,} students, {len(val_df):,} interactions")
     print(f"  Test : {len(test_students):,} students, {len(test_df):,} interactions")
+    print("=" * 78)
 
     # --------------------------------------------------------------------------
     # Zero-Leakage Vocabulary & Scaler Fitting (STRICTLY on Train Split)
     # --------------------------------------------------------------------------
     print("\nFitting concept vocab, problem indexer, and StandardScaler STRICTLY on Train...")
 
-    # Concept Index: Map all concepts present in Train deterministically to 0..N-1
-    train_concepts = sorted(train_df["ucid"].unique().tolist())
-    concept2idx = {c: i for i, c in enumerate(train_concepts)}
+    # Concept Index: Map all tracked top_concepts deterministically to 0..N-1
+    concept2idx = {c: i for i, c in enumerate(top_concepts)}
+    num_concepts = len(concept2idx)
 
     # Problem Index: Reserve index 0 for unseen <UNK> test problems
     train_problems = sorted(train_df["upid"].unique().tolist())
     problem2idx = {"<UNK>": 0}
     for p in train_problems:
         problem2idx[p] = len(problem2idx)
+    num_problems = len(problem2idx)
 
-    # Map vocabularies across splits
-    for split_data in [train_df, val_df, test_df]:
-        split_data["concept_idx"] = (
-            split_data["ucid"].map(lambda c: concept2idx.get(c, -1)).astype(np.int64)
+    # Map vocabularies across splits with strict range verification
+    for s_name, split_data in [("train", train_df), ("val", val_df), ("test", test_df)]:
+        split_data["concept_idx"] = split_data["ucid"].map(concept2idx).astype(np.int64)
+        assert not split_data["concept_idx"].isna().any(), f"NaN concept_idx in {s_name}"
+        assert (split_data["concept_idx"] >= 0).all(), f"Negative concept_idx in {s_name}"
+        assert (split_data["concept_idx"] < num_concepts).all(), (
+            f"Out-of-bounds concept_idx in {s_name}"
         )
+
         split_data["problem_idx"] = (
             split_data["upid"].map(lambda p: problem2idx.get(p, 0)).astype(np.int64)
         )
+        assert not split_data["problem_idx"].isna().any(), f"NaN problem_idx in {s_name}"
+        assert (split_data["problem_idx"] >= 0).all(), f"Negative problem_idx in {s_name}"
+        assert (split_data["problem_idx"] < num_problems).all(), (
+            f"Out-of-bounds problem_idx in {s_name}"
+        )
+
+    print(f"  Concept Vocab: {num_concepts} tracked concepts (0 to {num_concepts - 1})")
+    print(f"  Problem Vocab: {num_problems:,} problems including <UNK>=0 (0 to {num_problems - 1})")
 
     # Continuous Feature Normalization
     continuous_cols = ["log_sec", "log_hint_cnt", "log_attempt", "delta_t"]
@@ -469,6 +520,18 @@ def run_preprocessing(
             "var": scaler.var_.tolist(),
         },
         "sequence_length_stats": seq_stats,
+        "row_reconciliation": {
+            "n_extracted_raw": n_extracted_raw,
+            "n_dropped_dups": n_dropped_dups,
+            "n_capped_tail_rows": n_capped_tail_rows,
+            "n_dropped_short_students": n_dropped_short_students,
+            "n_final_split_total": n_final_split_total,
+            "formula": (
+                "extracted_rows - duplicate_rows - capped_tail_rows - "
+                "dropped_short_students == final_split_total"
+            ),
+            "verified": True,
+        },
         "data_hygiene": {
             "duplicate_rows_dropped": n_dropped_dups,
             "zero_nans_verified": True,
@@ -494,6 +557,12 @@ def run_preprocessing(
 
     with open(data_proc_dir / "metadata.json", "w", encoding="utf-8") as f:
         json.dump(metadata, f, indent=2)
+
+    with open(data_proc_dir / "vocab_concept.json", "w", encoding="utf-8") as f:
+        json.dump(concept2idx, f, indent=2)
+
+    with open(data_proc_dir / "vocab_problem.json", "w", encoding="utf-8") as f:
+        json.dump(problem2idx, f, indent=2)
 
     # --------------------------------------------------------------------------
     # Summary Report

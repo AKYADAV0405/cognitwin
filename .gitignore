@@ -76,6 +76,7 @@ outputs/checkpoints/
 outputs/checkpoints/*.pt
 services/gnn_kt/outputs/checkpoints/
 services/gnn_kt/outputs/runs/
+services/gnn_kt/outputs/results_fast_dev/
 services/gnn_kt/data/
 
 # OS Files
