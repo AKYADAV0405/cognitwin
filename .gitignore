@@ -62,6 +62,20 @@ coverage.xml
 *.db
 postgres_data/
 
+# Machine Learning Data & Model Checkpoints (NEVER COMMIT DATASETS OR WEIGHTS)
+data/
+data/raw/
+data/processed/
+*.csv
+*.parquet
+*.pt
+*.pth
+*.onnx
+outputs/checkpoints/
+outputs/checkpoints/*.pt
+services/gnn_kt/outputs/checkpoints/
+services/gnn_kt/data/
+
 # OS Files
 .DS_Store
 Thumbs.db
