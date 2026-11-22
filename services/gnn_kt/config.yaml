@@ -35,6 +35,7 @@ min_transition_count: 10
 gnn_type: "gcn"  # "gcn" | "gat"
 
 # Model Hyperparameters
+max_seq_len: 200
 embedding_dim: 64
 hidden_dim: 128
 num_gnn_layers: 2
