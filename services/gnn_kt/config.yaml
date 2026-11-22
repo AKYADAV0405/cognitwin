@@ -3,10 +3,10 @@
 # Configuration & Experiment Hyperparameters
 # ==============================================================================
 
-# Data Paths
-data_raw_dir: "../../data/raw"
-data_processed_dir: "./data/processed"
-outputs_dir: "./outputs"
+# Data Paths (relative to project root or config directory)
+data_raw_dir: "data/raw"
+data_processed_dir: "data/processed"
+outputs_dir: "services/gnn_kt/outputs"
 
 # Dataset Subsetting & Chunking
 top_n_concepts: 150
@@ -66,7 +66,7 @@ ablations:
 
 # Retention Delay Buckets (in seconds)
 retention_buckets:
-  immediate_practice_max_sec: 86400        # < 1 day
-  short_term_max_sec: 604800               # 1 - 7 days
-  medium_term_max_sec: 2592000             # 7 - 30 days
-  # >= 30 days is long_term_retention
+  immediate_practice_max_sec: 3600         # < 1 hour (bucket 0)
+  short_term_max_sec: 86400                # 1 hour - 24 hours (bucket 1)
+  medium_term_max_sec: 604800              # 1 day - 7 days (bucket 2)
+  # > 604800 is > 7 days (bucket 3)

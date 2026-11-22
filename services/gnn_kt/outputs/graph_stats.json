@@ -1,0 +1,12 @@
+{
+  "num_nodes": 150,
+  "num_hier_edges": 594,
+  "num_trans_edges": 364,
+  "num_combined_edges": 774,
+  "density_combined": 0.0344,
+  "isolated_nodes_count": 15,
+  "isolated_nodes_pct": 0.1,
+  "alpha_hier": 0.5,
+  "transition_threshold": 0.05,
+  "min_transition_count": 10
+}
