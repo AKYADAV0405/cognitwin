@@ -67,6 +67,7 @@ data/
 data/raw/
 data/processed/
 *.csv
+!services/gnn_kt/outputs/results/*.csv
 *.parquet
 *.pt
 *.pth
@@ -74,6 +75,7 @@ data/processed/
 outputs/checkpoints/
 outputs/checkpoints/*.pt
 services/gnn_kt/outputs/checkpoints/
+services/gnn_kt/outputs/runs/
 services/gnn_kt/data/
 
 # OS Files

@@ -1,0 +1,1288 @@
+{
+  "dkt": {
+    "42": {
+      "response_auc": 0.7148924955040354,
+      "response_acc": 0.7623668023910595,
+      "response_precision": 0.7698037790697675,
+      "response_recall": 0.975929978118162,
+      "response_f1": 0.8606977807120004,
+      "response_log_loss": 0.5042579102841972,
+      "response_brier": 0.1657891658612724,
+      "response_count": 11543,
+      "response_ece": 0.010349749194308549,
+      "reliability_diagram": [
+        {
+          "bin_index": 0,
+          "bin_lower": 0.0,
+          "bin_upper": 0.1,
+          "count": 0,
+          "accuracy": 0.0,
+          "confidence": 0.0
+        },
+        {
+          "bin_index": 1,
+          "bin_lower": 0.1,
+          "bin_upper": 0.2,
+          "count": 0,
+          "accuracy": 0.0,
+          "confidence": 0.0
+        },
+        {
+          "bin_index": 2,
+          "bin_lower": 0.2,
+          "bin_upper": 0.3,
+          "count": 10,
+          "accuracy": 0.1,
+          "confidence": 0.2799
+        },
+        {
+          "bin_index": 3,
+          "bin_lower": 0.3,
+          "bin_upper": 0.4,
+          "count": 117,
+          "accuracy": 0.3675,
+          "confidence": 0.3629
+        },
+        {
+          "bin_index": 4,
+          "bin_lower": 0.4,
+          "bin_upper": 0.5,
+          "count": 408,
+          "accuracy": 0.4044,
+          "confidence": 0.4583
+        },
+        {
+          "bin_index": 5,
+          "bin_lower": 0.5,
+          "bin_upper": 0.6,
+          "count": 956,
+          "accuracy": 0.5251,
+          "confidence": 0.5567
+        },
+        {
+          "bin_index": 6,
+          "bin_lower": 0.6,
+          "bin_upper": 0.7,
+          "count": 1845,
+          "accuracy": 0.6401,
+          "confidence": 0.6545
+        },
+        {
+          "bin_index": 7,
+          "bin_lower": 0.7,
+          "bin_upper": 0.8,
+          "count": 3169,
+          "accuracy": 0.7498,
+          "confidence": 0.7547
+        },
+        {
+          "bin_index": 8,
+          "bin_lower": 0.8,
+          "bin_upper": 0.9,
+          "count": 3656,
+          "accuracy": 0.8539,
+          "confidence": 0.8507
+        },
+        {
+          "bin_index": 9,
+          "bin_lower": 0.9,
+          "bin_upper": 1.0,
+          "count": 1382,
+          "accuracy": 0.9356,
+          "confidence": 0.9276
+        }
+      ],
+      "retention_auc": null,
+      "retention_f1": null,
+      "retention_brier": null,
+      "retention_buckets": {},
+      "model_name": "dkt",
+      "checkpoint": "services\\gnn_kt\\outputs\\checkpoints\\dkt_seed42_fastdev_best.pt",
+      "epoch": 2
+    }
+  },
+  "sakt": {
+    "42": {
+      "response_auc": 0.6660511376220232,
+      "response_acc": 0.7544832365936065,
+      "response_precision": 0.7562428809252607,
+      "response_recall": 0.9940112864217436,
+      "response_f1": 0.8589769108280255,
+      "response_log_loss": 0.5290375082172633,
+      "response_brier": 0.17482250532062354,
+      "response_count": 11543,
+      "response_ece": 0.017207386097523432,
+      "reliability_diagram": [
+        {
+          "bin_index": 0,
+          "bin_lower": 0.0,
+          "bin_upper": 0.1,
+          "count": 0,
+          "accuracy": 0.0,
+          "confidence": 0.0
+        },
+        {
+          "bin_index": 1,
+          "bin_lower": 0.1,
+          "bin_upper": 0.2,
+          "count": 0,
+          "accuracy": 0.0,
+          "confidence": 0.0
+        },
+        {
+          "bin_index": 2,
+          "bin_lower": 0.2,
+          "bin_upper": 0.3,
+          "count": 1,
+          "accuracy": 1.0,
+          "confidence": 0.2946
+        },
+        {
+          "bin_index": 3,
+          "bin_lower": 0.3,
+          "bin_upper": 0.4,
+          "count": 20,
+          "accuracy": 0.45,
+          "confidence": 0.3684
+        },
+        {
+          "bin_index": 4,
+          "bin_lower": 0.4,
+          "bin_upper": 0.5,
+          "count": 109,
+          "accuracy": 0.3853,
+          "confidence": 0.4682
+        },
+        {
+          "bin_index": 5,
+          "bin_lower": 0.5,
+          "bin_upper": 0.6,
+          "count": 559,
+          "accuracy": 0.5492,
+          "confidence": 0.5648
+        },
+        {
+          "bin_index": 6,
+          "bin_lower": 0.6,
+          "bin_upper": 0.7,
+          "count": 2044,
+          "accuracy": 0.6174,
+          "confidence": 0.6573
+        },
+        {
+          "bin_index": 7,
+          "bin_lower": 0.7,
+          "bin_upper": 0.8,
+          "count": 4396,
+          "accuracy": 0.745,
+          "confidence": 0.7537
+        },
+        {
+          "bin_index": 8,
+          "bin_lower": 0.8,
+          "bin_upper": 0.9,
+          "count": 4230,
+          "accuracy": 0.8556,
+          "confidence": 0.8418
+        },
+        {
+          "bin_index": 9,
+          "bin_lower": 0.9,
+          "bin_upper": 1.0,
+          "count": 184,
+          "accuracy": 0.913,
+          "confidence": 0.9093
+        }
+      ],
+      "retention_auc": null,
+      "retention_f1": null,
+      "retention_brier": null,
+      "retention_buckets": {},
+      "model_name": "sakt",
+      "checkpoint": "services\\gnn_kt\\outputs\\checkpoints\\sakt_seed42_fastdev_best.pt",
+      "epoch": 2
+    }
+  },
+  "gkt": {
+    "42": {
+      "response_auc": 0.7348085520376202,
+      "response_acc": 0.7696439400502469,
+      "response_precision": 0.7948893675347563,
+      "response_recall": 0.9350454911896809,
+      "response_f1": 0.8592898343652432,
+      "response_log_loss": 0.49359323304754615,
+      "response_brier": 0.16138811091240068,
+      "response_count": 11543,
+      "response_ece": 0.01051667832624953,
+      "reliability_diagram": [
+        {
+          "bin_index": 0,
+          "bin_lower": 0.0,
+          "bin_upper": 0.1,
+          "count": 0,
+          "accuracy": 0.0,
+          "confidence": 0.0
+        },
+        {
+          "bin_index": 1,
+          "bin_lower": 0.1,
+          "bin_upper": 0.2,
+          "count": 0,
+          "accuracy": 0.0,
+          "confidence": 0.0
+        },
+        {
+          "bin_index": 2,
+          "bin_lower": 0.2,
+          "bin_upper": 0.3,
+          "count": 53,
+          "accuracy": 0.3208,
+          "confidence": 0.2779
+        },
+        {
+          "bin_index": 3,
+          "bin_lower": 0.3,
+          "bin_upper": 0.4,
+          "count": 445,
+          "accuracy": 0.3775,
+          "confidence": 0.3605
+        },
+        {
+          "bin_index": 4,
+          "bin_lower": 0.4,
+          "bin_upper": 0.5,
+          "count": 831,
+          "accuracy": 0.4561,
+          "confidence": 0.4516
+        },
+        {
+          "bin_index": 5,
+          "bin_lower": 0.5,
+          "bin_upper": 0.6,
+          "count": 1067,
+          "accuracy": 0.5923,
+          "confidence": 0.5518
+        },
+        {
+          "bin_index": 6,
+          "bin_lower": 0.6,
+          "bin_upper": 0.7,
+          "count": 1452,
+          "accuracy": 0.6763,
+          "confidence": 0.6513
+        },
+        {
+          "bin_index": 7,
+          "bin_lower": 0.7,
+          "bin_upper": 0.8,
+          "count": 2117,
+          "accuracy": 0.7525,
+          "confidence": 0.7531
+        },
+        {
+          "bin_index": 8,
+          "bin_lower": 0.8,
+          "bin_upper": 0.9,
+          "count": 3278,
+          "accuracy": 0.8484,
+          "confidence": 0.8532
+        },
+        {
+          "bin_index": 9,
+          "bin_lower": 0.9,
+          "bin_upper": 1.0,
+          "count": 2300,
+          "accuracy": 0.9265,
+          "confidence": 0.9314
+        }
+      ],
+      "retention_auc": null,
+      "retention_f1": null,
+      "retention_brier": null,
+      "retention_buckets": {},
+      "model_name": "gkt",
+      "checkpoint": "services\\gnn_kt\\outputs\\checkpoints\\gkt_seed42_fastdev_best.pt",
+      "epoch": 2
+    }
+  },
+  "tpa_gkt_full": {
+    "42": {
+      "response_auc": 0.7393366106426109,
+      "response_acc": 0.7679112882266309,
+      "response_precision": 0.797404398652665,
+      "response_recall": 0.9269837613727974,
+      "response_f1": 0.8573254513500559,
+      "response_log_loss": 0.49165531192225437,
+      "response_brier": 0.16052641547731494,
+      "response_count": 11543,
+      "response_ece": 0.017052763303138124,
+      "reliability_diagram": [
+        {
+          "bin_index": 0,
+          "bin_lower": 0.0,
+          "bin_upper": 0.1,
+          "count": 0,
+          "accuracy": 0.0,
+          "confidence": 0.0
+        },
+        {
+          "bin_index": 1,
+          "bin_lower": 0.1,
+          "bin_upper": 0.2,
+          "count": 1,
+          "accuracy": 0.0,
+          "confidence": 0.1976
+        },
+        {
+          "bin_index": 2,
+          "bin_lower": 0.2,
+          "bin_upper": 0.3,
+          "count": 166,
+          "accuracy": 0.3193,
+          "confidence": 0.271
+        },
+        {
+          "bin_index": 3,
+          "bin_lower": 0.3,
+          "bin_upper": 0.4,
+          "count": 572,
+          "accuracy": 0.3881,
+          "confidence": 0.3534
+        },
+        {
+          "bin_index": 4,
+          "bin_lower": 0.4,
+          "bin_upper": 0.5,
+          "count": 710,
+          "accuracy": 0.5056,
+          "confidence": 0.4545
+        },
+        {
+          "bin_index": 5,
+          "bin_lower": 0.5,
+          "bin_upper": 0.6,
+          "count": 911,
+          "accuracy": 0.5554,
+          "confidence": 0.5531
+        },
+        {
+          "bin_index": 6,
+          "bin_lower": 0.6,
+          "bin_upper": 0.7,
+          "count": 1240,
+          "accuracy": 0.6597,
+          "confidence": 0.6534
+        },
+        {
+          "bin_index": 7,
+          "bin_lower": 0.7,
+          "bin_upper": 0.8,
+          "count": 1915,
+          "accuracy": 0.7582,
+          "confidence": 0.7529
+        },
+        {
+          "bin_index": 8,
+          "bin_lower": 0.8,
+          "bin_upper": 0.9,
+          "count": 3130,
+          "accuracy": 0.8297,
+          "confidence": 0.8538
+        },
+        {
+          "bin_index": 9,
+          "bin_lower": 0.9,
+          "bin_upper": 1.0,
+          "count": 2898,
+          "accuracy": 0.9234,
+          "confidence": 0.9362
+        }
+      ],
+      "retention_auc": 0.7584834729748644,
+      "retention_acc": 0.7991803278688525,
+      "retention_precision": 0.8225686711210096,
+      "retention_recall": 0.9527085124677558,
+      "retention_f1": 0.8828685258964143,
+      "retention_log_loss": 0.43834012247824194,
+      "retention_brier": 0.14042175488022646,
+      "retention_count": 1464,
+      "retention_buckets": {
+        "<1h": {
+          "bucket_idx": 0,
+          "name": "<1h",
+          "auc": 0.7296747967479675,
+          "f1": 0.821173104434907,
+          "brier": 0.17862711691065694,
+          "count": 460
+        },
+        "1h-24h": {
+          "bucket_idx": 1,
+          "name": "1h-24h",
+          "auc": 0.7395959595959596,
+          "f1": 0.9116809116809117,
+          "brier": 0.12045435650374277,
+          "count": 195
+        },
+        "1d-7d": {
+          "bucket_idx": 2,
+          "name": "1d-7d",
+          "auc": 0.7409363745498199,
+          "f1": 0.9090909090909091,
+          "brier": 0.12247629082931581,
+          "count": 427
+        },
+        ">7d": {
+          "bucket_idx": 3,
+          "name": ">7d",
+          "auc": 0.7794601102004908,
+          "f1": 0.9014492753623189,
+          "brier": 0.12466753838586814,
+          "count": 382
+        }
+      },
+      "model_name": "tpa_gkt",
+      "checkpoint": "services\\gnn_kt\\outputs\\checkpoints\\tpa_gkt_full_seed42_fastdev_best.pt",
+      "epoch": 2
+    }
+  },
+  "ablation_wo_hier": {
+    "42": {
+      "response_auc": 0.7409215741071091,
+      "response_acc": 0.7682578185913541,
+      "response_precision": 0.796486379786814,
+      "response_recall": 0.9294022803178625,
+      "response_f1": 0.8578262024980069,
+      "response_log_loss": 0.490858291907826,
+      "response_brier": 0.16021884587468765,
+      "response_count": 11543,
+      "response_ece": 0.018297854785457337,
+      "reliability_diagram": [
+        {
+          "bin_index": 0,
+          "bin_lower": 0.0,
+          "bin_upper": 0.1,
+          "count": 0,
+          "accuracy": 0.0,
+          "confidence": 0.0
+        },
+        {
+          "bin_index": 1,
+          "bin_lower": 0.1,
+          "bin_upper": 0.2,
+          "count": 2,
+          "accuracy": 0.0,
+          "confidence": 0.197
+        },
+        {
+          "bin_index": 2,
+          "bin_lower": 0.2,
+          "bin_upper": 0.3,
+          "count": 179,
+          "accuracy": 0.3352,
+          "confidence": 0.2713
+        },
+        {
+          "bin_index": 3,
+          "bin_lower": 0.3,
+          "bin_upper": 0.4,
+          "count": 526,
+          "accuracy": 0.384,
+          "confidence": 0.354
+        },
+        {
+          "bin_index": 4,
+          "bin_lower": 0.4,
+          "bin_upper": 0.5,
+          "count": 704,
+          "accuracy": 0.4986,
+          "confidence": 0.4552
+        },
+        {
+          "bin_index": 5,
+          "bin_lower": 0.5,
+          "bin_upper": 0.6,
+          "count": 889,
+          "accuracy": 0.5636,
+          "confidence": 0.5541
+        },
+        {
+          "bin_index": 6,
+          "bin_lower": 0.6,
+          "bin_upper": 0.7,
+          "count": 1207,
+          "accuracy": 0.6462,
+          "confidence": 0.6537
+        },
+        {
+          "bin_index": 7,
+          "bin_lower": 0.7,
+          "bin_upper": 0.8,
+          "count": 1882,
+          "accuracy": 0.7434,
+          "confidence": 0.7528
+        },
+        {
+          "bin_index": 8,
+          "bin_lower": 0.8,
+          "bin_upper": 0.9,
+          "count": 3105,
+          "accuracy": 0.8303,
+          "confidence": 0.855
+        },
+        {
+          "bin_index": 9,
+          "bin_lower": 0.9,
+          "bin_upper": 1.0,
+          "count": 3049,
+          "accuracy": 0.9223,
+          "confidence": 0.9357
+        }
+      ],
+      "retention_auc": 0.7609401736258903,
+      "retention_acc": 0.7984972677595629,
+      "retention_precision": 0.8214814814814815,
+      "retention_recall": 0.9535683576956148,
+      "retention_f1": 0.8826104257859132,
+      "retention_log_loss": 0.4369544423794367,
+      "retention_brier": 0.14001940757080403,
+      "retention_count": 1464,
+      "retention_buckets": {
+        "<1h": {
+          "bucket_idx": 0,
+          "name": "<1h",
+          "auc": 0.7319151884700665,
+          "f1": 0.8238636363636364,
+          "brier": 0.1778304915643551,
+          "count": 460
+        },
+        "1h-24h": {
+          "bucket_idx": 1,
+          "name": "1h-24h",
+          "auc": 0.75010101010101,
+          "f1": 0.9065155807365439,
+          "brier": 0.11959712333864511,
+          "count": 195
+        },
+        "1d-7d": {
+          "bucket_idx": 2,
+          "name": "1d-7d",
+          "auc": 0.7438175270108043,
+          "f1": 0.9086161879895561,
+          "brier": 0.12238192367139206,
+          "count": 427
+        },
+        ">7d": {
+          "bucket_idx": 3,
+          "name": ">7d",
+          "auc": 0.7820530629254063,
+          "f1": 0.9014492753623189,
+          "brier": 0.12462792174171079,
+          "count": 382
+        }
+      },
+      "model_name": "tpa_gkt",
+      "checkpoint": "services\\gnn_kt\\outputs\\checkpoints\\ablation_wo_hier_seed42_fastdev_best.pt",
+      "epoch": 2
+    }
+  },
+  "ablation_wo_trans": {
+    "42": {
+      "response_auc": 0.7395387579137435,
+      "response_acc": 0.7683444511825349,
+      "response_precision": 0.7979176995537928,
+      "response_recall": 0.9267534262351722,
+      "response_f1": 0.8575234441602728,
+      "response_log_loss": 0.49159633225854377,
+      "response_brier": 0.16050774433585802,
+      "response_count": 11543,
+      "response_ece": 0.01731411977681979,
+      "reliability_diagram": [
+        {
+          "bin_index": 0,
+          "bin_lower": 0.0,
+          "bin_upper": 0.1,
+          "count": 0,
+          "accuracy": 0.0,
+          "confidence": 0.0
+        },
+        {
+          "bin_index": 1,
+          "bin_lower": 0.1,
+          "bin_upper": 0.2,
+          "count": 1,
+          "accuracy": 0.0,
+          "confidence": 0.1964
+        },
+        {
+          "bin_index": 2,
+          "bin_lower": 0.2,
+          "bin_upper": 0.3,
+          "count": 183,
+          "accuracy": 0.3169,
+          "confidence": 0.2721
+        },
+        {
+          "bin_index": 3,
+          "bin_lower": 0.3,
+          "bin_upper": 0.4,
+          "count": 570,
+          "accuracy": 0.3912,
+          "confidence": 0.3537
+        },
+        {
+          "bin_index": 4,
+          "bin_lower": 0.4,
+          "bin_upper": 0.5,
+          "count": 704,
+          "accuracy": 0.5043,
+          "confidence": 0.4536
+        },
+        {
+          "bin_index": 5,
+          "bin_lower": 0.5,
+          "bin_upper": 0.6,
+          "count": 908,
+          "accuracy": 0.5606,
+          "confidence": 0.5528
+        },
+        {
+          "bin_index": 6,
+          "bin_lower": 0.6,
+          "bin_upper": 0.7,
+          "count": 1240,
+          "accuracy": 0.6621,
+          "confidence": 0.6535
+        },
+        {
+          "bin_index": 7,
+          "bin_lower": 0.7,
+          "bin_upper": 0.8,
+          "count": 1888,
+          "accuracy": 0.7553,
+          "confidence": 0.753
+        },
+        {
+          "bin_index": 8,
+          "bin_lower": 0.8,
+          "bin_upper": 0.9,
+          "count": 3148,
+          "accuracy": 0.8294,
+          "confidence": 0.8536
+        },
+        {
+          "bin_index": 9,
+          "bin_lower": 0.9,
+          "bin_upper": 1.0,
+          "count": 2901,
+          "accuracy": 0.9238,
+          "confidence": 0.9363
+        }
+      ],
+      "retention_auc": 0.7581178245058746,
+      "retention_acc": 0.7978142076502732,
+      "retention_precision": 0.8223048327137547,
+      "retention_recall": 0.9509888220120378,
+      "retention_f1": 0.8819776714513556,
+      "retention_log_loss": 0.4383829825674162,
+      "retention_brier": 0.14043315508608253,
+      "retention_count": 1464,
+      "retention_buckets": {
+        "<1h": {
+          "bucket_idx": 0,
+          "name": "<1h",
+          "auc": 0.7293514412416852,
+          "f1": 0.8177905308464849,
+          "brier": 0.1786713334191408,
+          "count": 460
+        },
+        "1h-24h": {
+          "bucket_idx": 1,
+          "name": "1h-24h",
+          "auc": 0.7367676767676768,
+          "f1": 0.9116809116809117,
+          "brier": 0.12056973900396603,
+          "count": 195
+        },
+        "1d-7d": {
+          "bucket_idx": 2,
+          "name": "1d-7d",
+          "auc": 0.7420568227290916,
+          "f1": 0.9090909090909091,
+          "brier": 0.12239637838974078,
+          "count": 427
+        },
+        ">7d": {
+          "bucket_idx": 3,
+          "name": ">7d",
+          "auc": 0.7785803583831087,
+          "f1": 0.9014492753623189,
+          "brier": 0.1246884109817471,
+          "count": 382
+        }
+      },
+      "model_name": "tpa_gkt",
+      "checkpoint": "services\\gnn_kt\\outputs\\checkpoints\\ablation_wo_trans_seed42_fastdev_best.pt",
+      "epoch": 2
+    }
+  },
+  "ablation_wo_time_decay": {
+    "42": {
+      "response_auc": 0.7394591674592826,
+      "response_acc": 0.7679979208178117,
+      "response_precision": 0.7976603549122633,
+      "response_recall": 0.9266382586663595,
+      "response_f1": 0.8573255194459244,
+      "response_log_loss": 0.4915377725243644,
+      "response_brier": 0.16048069042075547,
+      "response_count": 11543,
+      "response_ece": 0.016612644375976468,
+      "reliability_diagram": [
+        {
+          "bin_index": 0,
+          "bin_lower": 0.0,
+          "bin_upper": 0.1,
+          "count": 0,
+          "accuracy": 0.0,
+          "confidence": 0.0
+        },
+        {
+          "bin_index": 1,
+          "bin_lower": 0.1,
+          "bin_upper": 0.2,
+          "count": 1,
+          "accuracy": 0.0,
+          "confidence": 0.1969
+        },
+        {
+          "bin_index": 2,
+          "bin_lower": 0.2,
+          "bin_upper": 0.3,
+          "count": 170,
+          "accuracy": 0.3235,
+          "confidence": 0.271
+        },
+        {
+          "bin_index": 3,
+          "bin_lower": 0.3,
+          "bin_upper": 0.4,
+          "count": 570,
+          "accuracy": 0.3825,
+          "confidence": 0.3533
+        },
+        {
+          "bin_index": 4,
+          "bin_lower": 0.4,
+          "bin_upper": 0.5,
+          "count": 715,
+          "accuracy": 0.5091,
+          "confidence": 0.4547
+        },
+        {
+          "bin_index": 5,
+          "bin_lower": 0.5,
+          "bin_upper": 0.6,
+          "count": 900,
+          "accuracy": 0.5522,
+          "confidence": 0.5528
+        },
+        {
+          "bin_index": 6,
+          "bin_lower": 0.6,
+          "bin_upper": 0.7,
+          "count": 1239,
+          "accuracy": 0.6651,
+          "confidence": 0.6529
+        },
+        {
+          "bin_index": 7,
+          "bin_lower": 0.7,
+          "bin_upper": 0.8,
+          "count": 1918,
+          "accuracy": 0.7544,
+          "confidence": 0.7527
+        },
+        {
+          "bin_index": 8,
+          "bin_lower": 0.8,
+          "bin_upper": 0.9,
+          "count": 3144,
+          "accuracy": 0.8305,
+          "confidence": 0.8538
+        },
+        {
+          "bin_index": 9,
+          "bin_lower": 0.9,
+          "bin_upper": 1.0,
+          "count": 2886,
+          "accuracy": 0.9241,
+          "confidence": 0.9362
+        }
+      ],
+      "retention_auc": 0.7584377669162408,
+      "retention_acc": 0.7991803278688525,
+      "retention_precision": 0.8220904373610082,
+      "retention_recall": 0.9535683576956148,
+      "retention_f1": 0.8829617834394905,
+      "retention_log_loss": 0.4382858019296738,
+      "retention_brier": 0.14038983632368868,
+      "retention_count": 1464,
+      "retention_buckets": {
+        "<1h": {
+          "bucket_idx": 0,
+          "name": "<1h",
+          "auc": 0.7291435698447895,
+          "f1": 0.8216833095577746,
+          "brier": 0.17860702068925813,
+          "count": 460
+        },
+        "1h-24h": {
+          "bucket_idx": 1,
+          "name": "1h-24h",
+          "auc": 0.7410101010101011,
+          "f1": 0.9116809116809117,
+          "brier": 0.12043364665472325,
+          "count": 195
+        },
+        "1d-7d": {
+          "bucket_idx": 2,
+          "name": "1d-7d",
+          "auc": 0.7410564225690277,
+          "f1": 0.9090909090909091,
+          "brier": 0.122402150786852,
+          "count": 427
+        },
+        ">7d": {
+          "bucket_idx": 3,
+          "name": ">7d",
+          "auc": 0.7791359911098763,
+          "f1": 0.9014492753623189,
+          "brier": 0.1246628570082844,
+          "count": 382
+        }
+      },
+      "model_name": "tpa_gkt",
+      "checkpoint": "services\\gnn_kt\\outputs\\checkpoints\\ablation_wo_time_decay_seed42_fastdev_best.pt",
+      "epoch": 2
+    }
+  },
+  "ablation_wo_attempt_hint": {
+    "42": {
+      "response_auc": 0.7344463178190002,
+      "response_acc": 0.7685177163648965,
+      "response_precision": 0.7938214879264835,
+      "response_recall": 0.9351606587584936,
+      "response_f1": 0.8587140439932318,
+      "response_log_loss": 0.4948391790281702,
+      "response_brier": 0.16165731220714416,
+      "response_count": 11543,
+      "response_ece": 0.01596539749317813,
+      "reliability_diagram": [
+        {
+          "bin_index": 0,
+          "bin_lower": 0.0,
+          "bin_upper": 0.1,
+          "count": 0,
+          "accuracy": 0.0,
+          "confidence": 0.0
+        },
+        {
+          "bin_index": 1,
+          "bin_lower": 0.1,
+          "bin_upper": 0.2,
+          "count": 0,
+          "accuracy": 0.0,
+          "confidence": 0.0
+        },
+        {
+          "bin_index": 2,
+          "bin_lower": 0.2,
+          "bin_upper": 0.3,
+          "count": 83,
+          "accuracy": 0.3133,
+          "confidence": 0.2792
+        },
+        {
+          "bin_index": 3,
+          "bin_lower": 0.3,
+          "bin_upper": 0.4,
+          "count": 437,
+          "accuracy": 0.4096,
+          "confidence": 0.3587
+        },
+        {
+          "bin_index": 4,
+          "bin_lower": 0.4,
+          "bin_upper": 0.5,
+          "count": 794,
+          "accuracy": 0.4509,
+          "confidence": 0.4527
+        },
+        {
+          "bin_index": 5,
+          "bin_lower": 0.5,
+          "bin_upper": 0.6,
+          "count": 1036,
+          "accuracy": 0.5801,
+          "confidence": 0.5537
+        },
+        {
+          "bin_index": 6,
+          "bin_lower": 0.6,
+          "bin_upper": 0.7,
+          "count": 1345,
+          "accuracy": 0.6625,
+          "confidence": 0.6521
+        },
+        {
+          "bin_index": 7,
+          "bin_lower": 0.7,
+          "bin_upper": 0.8,
+          "count": 1952,
+          "accuracy": 0.7444,
+          "confidence": 0.7529
+        },
+        {
+          "bin_index": 8,
+          "bin_lower": 0.8,
+          "bin_upper": 0.9,
+          "count": 3015,
+          "accuracy": 0.8398,
+          "confidence": 0.8542
+        },
+        {
+          "bin_index": 9,
+          "bin_lower": 0.9,
+          "bin_upper": 1.0,
+          "count": 2881,
+          "accuracy": 0.9174,
+          "confidence": 0.937
+        }
+      ],
+      "retention_auc": 0.7560753350111267,
+      "retention_acc": 0.7923497267759563,
+      "retention_precision": 0.8110065170166546,
+      "retention_recall": 0.9630266552020637,
+      "retention_f1": 0.8805031446540881,
+      "retention_log_loss": 0.4397061118219163,
+      "retention_brier": 0.1410877959922409,
+      "retention_count": 1464,
+      "retention_buckets": {
+        "<1h": {
+          "bucket_idx": 0,
+          "name": "<1h",
+          "auc": 0.7219835550628235,
+          "f1": 0.8178025034770514,
+          "brier": 0.1798348850808968,
+          "count": 460
+        },
+        "1h-24h": {
+          "bucket_idx": 1,
+          "name": "1h-24h",
+          "auc": 0.7391919191919192,
+          "f1": 0.9101123595505618,
+          "brier": 0.12134405093451989,
+          "count": 195
+        },
+        "1d-7d": {
+          "bucket_idx": 2,
+          "name": "1d-7d",
+          "auc": 0.744577831132453,
+          "f1": 0.9069767441860465,
+          "brier": 0.1218947143063281,
+          "count": 427
+        },
+        ">7d": {
+          "bucket_idx": 3,
+          "name": ">7d",
+          "auc": 0.7817289438347919,
+          "f1": 0.9007194244604316,
+          "brier": 0.12596165773401752,
+          "count": 382
+        }
+      },
+      "model_name": "tpa_gkt",
+      "checkpoint": "services\\gnn_kt\\outputs\\checkpoints\\ablation_wo_attempt_hint_seed42_fastdev_best.pt",
+      "epoch": 2
+    }
+  },
+  "ablation_wo_graph": {
+    "42": {
+      "response_auc": 0.7377152445619565,
+      "response_acc": 0.7678246556354501,
+      "response_precision": 0.7990435389060476,
+      "response_recall": 0.9236439018772313,
+      "response_f1": 0.8568376068376068,
+      "response_log_loss": 0.491834763649518,
+      "response_brier": 0.1608446584349078,
+      "response_count": 11543,
+      "response_ece": 0.018696722574935463,
+      "reliability_diagram": [
+        {
+          "bin_index": 0,
+          "bin_lower": 0.0,
+          "bin_upper": 0.1,
+          "count": 0,
+          "accuracy": 0.0,
+          "confidence": 0.0
+        },
+        {
+          "bin_index": 1,
+          "bin_lower": 0.1,
+          "bin_upper": 0.2,
+          "count": 0,
+          "accuracy": 0.0,
+          "confidence": 0.0
+        },
+        {
+          "bin_index": 2,
+          "bin_lower": 0.2,
+          "bin_upper": 0.3,
+          "count": 92,
+          "accuracy": 0.3043,
+          "confidence": 0.2782
+        },
+        {
+          "bin_index": 3,
+          "bin_lower": 0.3,
+          "bin_upper": 0.4,
+          "count": 552,
+          "accuracy": 0.3804,
+          "confidence": 0.3576
+        },
+        {
+          "bin_index": 4,
+          "bin_lower": 0.4,
+          "bin_upper": 0.5,
+          "count": 862,
+          "accuracy": 0.493,
+          "confidence": 0.4518
+        },
+        {
+          "bin_index": 5,
+          "bin_lower": 0.5,
+          "bin_upper": 0.6,
+          "count": 1043,
+          "accuracy": 0.5791,
+          "confidence": 0.5503
+        },
+        {
+          "bin_index": 6,
+          "bin_lower": 0.6,
+          "bin_upper": 0.7,
+          "count": 1300,
+          "accuracy": 0.68,
+          "confidence": 0.6535
+        },
+        {
+          "bin_index": 7,
+          "bin_lower": 0.7,
+          "bin_upper": 0.8,
+          "count": 2074,
+          "accuracy": 0.7705,
+          "confidence": 0.7543
+        },
+        {
+          "bin_index": 8,
+          "bin_lower": 0.8,
+          "bin_upper": 0.9,
+          "count": 3142,
+          "accuracy": 0.8386,
+          "confidence": 0.8534
+        },
+        {
+          "bin_index": 9,
+          "bin_lower": 0.9,
+          "bin_upper": 1.0,
+          "count": 2478,
+          "accuracy": 0.9278,
+          "confidence": 0.9362
+        }
+      ],
+      "retention_auc": 0.7563667111348528,
+      "retention_acc": 0.796448087431694,
+      "retention_precision": 0.8173147468818782,
+      "retention_recall": 0.9578675838349097,
+      "retention_f1": 0.8820269200316706,
+      "retention_log_loss": 0.43854763413326897,
+      "retention_brier": 0.14053808462712583,
+      "retention_count": 1464,
+      "retention_buckets": {
+        "<1h": {
+          "bucket_idx": 0,
+          "name": "<1h",
+          "auc": 0.727919438285292,
+          "f1": 0.8233657858136301,
+          "brier": 0.1787777634243125,
+          "count": 460
+        },
+        "1h-24h": {
+          "bucket_idx": 1,
+          "name": "1h-24h",
+          "auc": 0.7323232323232323,
+          "f1": 0.9090909090909091,
+          "brier": 0.122399357830019,
+          "count": 195
+        },
+        "1d-7d": {
+          "bucket_idx": 2,
+          "name": "1d-7d",
+          "auc": 0.7418967587034814,
+          "f1": 0.9064935064935065,
+          "brier": 0.12311652265358501,
+          "count": 427
+        },
+        ">7d": {
+          "bucket_idx": 3,
+          "name": ">7d",
+          "auc": 0.7746909292957356,
+          "f1": 0.9021897810218978,
+          "brier": 0.12322344180364914,
+          "count": 382
+        }
+      },
+      "model_name": "tpa_gkt",
+      "checkpoint": "services\\gnn_kt\\outputs\\checkpoints\\ablation_wo_graph_seed42_fastdev_best.pt",
+      "epoch": 2
+    }
+  },
+  "ablation_gat": {
+    "42": {
+      "response_auc": 0.7370187626493051,
+      "response_acc": 0.7674781252707269,
+      "response_precision": 0.7840166650885333,
+      "response_recall": 0.9535874697685132,
+      "response_f1": 0.8605279567657451,
+      "response_log_loss": 0.4940753444757206,
+      "response_brier": 0.16147413590150522,
+      "response_count": 11543,
+      "response_ece": 0.02541993092511559,
+      "reliability_diagram": [
+        {
+          "bin_index": 0,
+          "bin_lower": 0.0,
+          "bin_upper": 0.1,
+          "count": 0,
+          "accuracy": 0.0,
+          "confidence": 0.0
+        },
+        {
+          "bin_index": 1,
+          "bin_lower": 0.1,
+          "bin_upper": 0.2,
+          "count": 0,
+          "accuracy": 0.0,
+          "confidence": 0.0
+        },
+        {
+          "bin_index": 2,
+          "bin_lower": 0.2,
+          "bin_upper": 0.3,
+          "count": 6,
+          "accuracy": 0.3333,
+          "confidence": 0.2922
+        },
+        {
+          "bin_index": 3,
+          "bin_lower": 0.3,
+          "bin_upper": 0.4,
+          "count": 236,
+          "accuracy": 0.3517,
+          "confidence": 0.3678
+        },
+        {
+          "bin_index": 4,
+          "bin_lower": 0.4,
+          "bin_upper": 0.5,
+          "count": 740,
+          "accuracy": 0.4297,
+          "confidence": 0.4536
+        },
+        {
+          "bin_index": 5,
+          "bin_lower": 0.5,
+          "bin_upper": 0.6,
+          "count": 989,
+          "accuracy": 0.5207,
+          "confidence": 0.5512
+        },
+        {
+          "bin_index": 6,
+          "bin_lower": 0.6,
+          "bin_upper": 0.7,
+          "count": 1185,
+          "accuracy": 0.6363,
+          "confidence": 0.6516
+        },
+        {
+          "bin_index": 7,
+          "bin_lower": 0.7,
+          "bin_upper": 0.8,
+          "count": 1926,
+          "accuracy": 0.7342,
+          "confidence": 0.7549
+        },
+        {
+          "bin_index": 8,
+          "bin_lower": 0.8,
+          "bin_upper": 0.9,
+          "count": 3175,
+          "accuracy": 0.8145,
+          "confidence": 0.8543
+        },
+        {
+          "bin_index": 9,
+          "bin_lower": 0.9,
+          "bin_upper": 1.0,
+          "count": 3286,
+          "accuracy": 0.9163,
+          "confidence": 0.9336
+        }
+      ],
+      "retention_auc": 0.7519560764776625,
+      "retention_acc": 0.7943989071038251,
+      "retention_precision": 0.8100719424460432,
+      "retention_recall": 0.9681857265692175,
+      "retention_f1": 0.8820994907951429,
+      "retention_log_loss": 0.44437362818843495,
+      "retention_brier": 0.14253324160025693,
+      "retention_count": 1464,
+      "retention_buckets": {
+        "<1h": {
+          "bucket_idx": 0,
+          "name": "<1h",
+          "auc": 0.7237158167036217,
+          "f1": 0.8212824010914052,
+          "brier": 0.181157274758438,
+          "count": 460
+        },
+        "1h-24h": {
+          "bucket_idx": 1,
+          "name": "1h-24h",
+          "auc": 0.7129292929292929,
+          "f1": 0.9187675070028011,
+          "brier": 0.12027297960177602,
+          "count": 195
+        },
+        "1d-7d": {
+          "bucket_idx": 2,
+          "name": "1d-7d",
+          "auc": 0.7390956382553022,
+          "f1": 0.9095607235142119,
+          "brier": 0.12387992280087555,
+          "count": 427
+        },
+        ">7d": {
+          "bucket_idx": 3,
+          "name": ">7d",
+          "auc": 0.7737648747511229,
+          "f1": 0.8969521044992743,
+          "brier": 0.12823654778946192,
+          "count": 382
+        }
+      },
+      "model_name": "tpa_gkt",
+      "checkpoint": "services\\gnn_kt\\outputs\\checkpoints\\ablation_gat_seed42_fastdev_best.pt",
+      "epoch": 2
+    }
+  }
+}

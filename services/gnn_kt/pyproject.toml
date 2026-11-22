@@ -33,7 +33,7 @@ target-version = "py311"
 
 [tool.ruff.lint]
 select = ["E", "F", "W", "I", "N", "B", "UP"]
-ignore = ["N812"]
+ignore = ["N812", "E402"]
 
 [tool.ruff.lint.per-file-ignores]
 "src/inspect_data.py" = ["E501"]

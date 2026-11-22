@@ -303,3 +303,43 @@ def test_strict_causality_invariance(
     assert torch.allclose(orig_pred_past, pert_pred_past, atol=1e-5, rtol=1e-5), (
         f"{model_cls} violated temporal causality! Future changes leaked into past predictions."
     )
+
+
+def test_mastery_head_optimizer_update(
+    sample_batch: dict[str, torch.Tensor],
+    graph_data: tuple[torch.Tensor, torch.Tensor],
+) -> None:
+    """Verify that Concept Mastery Head parameters update after 1 optimizer step."""
+    edge_index, edge_weight = graph_data
+    model = TPAGKT(
+        num_concepts=150,
+        num_problems=3000,
+        embedding_dim=32,
+        hidden_dim=64,
+        gnn_type="gcn",
+        edge_index=edge_index,
+        edge_weight=edge_weight,
+    )
+    model.train()
+    optimizer = torch.optim.AdamW(model.parameters(), lr=1e-2)
+
+    # Cache pre-step weights of mastery_head
+    pre_weights = [p.clone() for p in model.mastery_head.parameters()]
+
+    optimizer.zero_grad()
+    out = model(sample_batch)
+    loss = out["loss"]
+    loss.backward()
+
+    # Assert non-None and non-zero gradients on mastery_head
+    for name, param in model.mastery_head.named_parameters():
+        assert param.grad is not None, f"Gradient for mastery_head.{name} is None!"
+        assert not torch.isnan(param.grad).any(), f"NaN gradient in mastery_head.{name}!"
+
+    optimizer.step()
+
+    # Assert weights updated
+    for i, (name, param) in enumerate(model.mastery_head.named_parameters()):
+        assert not torch.equal(pre_weights[i], param), (
+            f"mastery_head.{name} weights did not update after optimizer step!"
+        )

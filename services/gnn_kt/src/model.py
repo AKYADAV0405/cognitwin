@@ -40,6 +40,7 @@ class TPAGKT(nn.Module):
         num_rnn_layers: int = 1,
         dropout: float = 0.2,
         gat_heads: int = 4,
+        loss_weight_mastery: float = 0.2,
         loss_weight_retention: float = 0.1,
         # Ablation Toggles
         use_graph: bool = True,
@@ -58,6 +59,7 @@ class TPAGKT(nn.Module):
         self.embedding_dim = int(embedding_dim)
         self.hidden_dim = int(hidden_dim)
         self.dropout_rate = float(dropout)
+        self.loss_weight_mastery = float(loss_weight_mastery)
         self.loss_weight_retention = float(loss_weight_retention)
 
         # Ablation flags
@@ -288,6 +290,10 @@ class TPAGKT(nn.Module):
         response_input = torch.cat([h, next_g, next_p_emb], dim=-1)
         logits_response = self.response_head(response_input).squeeze(-1)  # [B, L]
 
+        # Stage 3: Head 2 — Auxiliary Concept Mastery Supervision on next_concept
+        mastery_input = torch.cat([h, next_g], dim=-1)
+        logits_mastery = self.mastery_head(mastery_input).squeeze(-1)  # [B, L]
+
         # Stage 3: Head 3 — Time-Conditioned Delayed Retention Head
         ret_concept = batch["ret_concept"].to(device)
         ret_log_delta = batch["ret_log_delta"].to(device).unsqueeze(-1)  # [B, L, 1]
@@ -306,23 +312,31 @@ class TPAGKT(nn.Module):
                 logits_response[next_mask], next_correct[next_mask]
             )
 
+        loss_mastery = torch.tensor(0.0, device=device)
+        if next_mask.any():
+            loss_mastery = F.binary_cross_entropy_with_logits(
+                logits_mastery[next_mask], next_correct[next_mask]
+            )
+
         loss_retention = torch.tensor(0.0, device=device)
         if self.use_retention_head and ret_mask.any():
             loss_retention = F.binary_cross_entropy_with_logits(
                 logits_retention[ret_mask], ret_target[ret_mask]
             )
 
+        total_loss = loss_response + self.loss_weight_mastery * loss_mastery
         if self.use_retention_head:
-            total_loss = loss_response + self.loss_weight_retention * loss_retention
-        else:
-            total_loss = loss_response
+            total_loss = total_loss + self.loss_weight_retention * loss_retention
 
         return {
             "loss": total_loss,
             "loss_response": loss_response,
+            "loss_mastery": loss_mastery,
             "loss_retention": loss_retention,
             "logits_response": logits_response,
             "pred_response": torch.sigmoid(logits_response),
+            "logits_mastery": logits_mastery,
+            "pred_mastery": torch.sigmoid(logits_mastery),
             "logits_retention": logits_retention,
             "pred_retention": torch.sigmoid(logits_retention),
             "hidden_states": h,
