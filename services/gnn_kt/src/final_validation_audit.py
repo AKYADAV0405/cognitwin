@@ -837,10 +837,19 @@ def run_paired_statistical_significance(
         logger.warning("Insufficient models loaded for paired statistical comparison.")
         return []
 
-    # Get set of common unique students
+    # Pre-convert student predictions into NumPy arrays for fast vectorized bootstrapping
+    student_arrays: dict[str, dict[str, tuple[np.ndarray, np.ndarray]]] = {}
+    for m_label in student_preds:
+        student_arrays[m_label] = {}
+        for s_u, pairs in student_preds[m_label].items():
+            if pairs:
+                yt_arr = np.array([p[0] for p in pairs], dtype=np.int32)
+                yp_arr = np.array([p[1] for p in pairs], dtype=np.float32)
+                student_arrays[m_label][s_u] = (yt_arr, yp_arr)
+
+    # Common unique students across primary
     sample_primary = primary_models[0]
     unique_students = list(student_preds[sample_primary].keys())
-    n_students = len(unique_students)
 
     stat_results: list[dict[str, Any]] = []
 
@@ -849,40 +858,48 @@ def run_paired_statistical_significance(
             if prim == comp:
                 continue
 
+            # Pre-pack aligned student arrays to eliminate nested loop allocations
+            student_packed: list[tuple[np.ndarray, np.ndarray, np.ndarray]] = []
+            for s_u in unique_students:
+                if s_u in student_arrays.get(prim, {}) and s_u in student_arrays.get(comp, {}):
+                    yt_p, yp_p = student_arrays[prim][s_u]
+                    _, yp_c = student_arrays[comp][s_u]
+                    min_len = min(len(yt_p), len(yp_c))
+                    if min_len > 0:
+                        student_packed.append((yt_p[:min_len], yp_p[:min_len], yp_c[:min_len]))
+
+            n_valid_students = len(student_packed)
+            if n_valid_students == 0:
+                continue
+
             delta_aucs: list[float] = []
             delta_briers: list[float] = []
 
             for _ in range(n_bootstrap):
-                # Resample students with replacement
-                boot_students = np.random.choice(unique_students, size=n_students, replace=True)
+                # Resample student indices with replacement
+                boot_idx = np.random.choice(n_valid_students, size=n_valid_students, replace=True)
 
-                yt_p: list[int] = []
-                yp_p: list[float] = []
-                yp_c: list[float] = []
+                yt_sample = np.concatenate([student_packed[i][0] for i in boot_idx])
+                yp_prim_sample = np.concatenate([student_packed[i][1] for i in boot_idx])
+                yp_comp_sample = np.concatenate([student_packed[i][2] for i in boot_idx])
 
-                for s_u in boot_students:
-                    items_p = student_preds[prim].get(s_u, [])
-                    items_c = student_preds[comp].get(s_u, [])
-                    # Assert aligned count
-                    min_len = min(len(items_p), len(items_c))
-                    for k in range(min_len):
-                        yt_p.append(items_p[k][0])
-                        yp_p.append(items_p[k][1])
-                        yp_c.append(items_c[k][1])
-
-                if len(set(yt_p)) < 2:
+                if len(np.unique(yt_sample)) < 2:
                     continue
 
                 try:
-                    auc_p = float(roc_auc_score(yt_p, yp_p))
-                    auc_c = float(roc_auc_score(yt_p, yp_c))
-                    brier_p = float(brier_score_loss(yt_p, yp_p))
-                    brier_c = float(brier_score_loss(yt_p, yp_c))
+                    auc_p = float(roc_auc_score(yt_sample, yp_prim_sample))
+                    auc_c = float(roc_auc_score(yt_sample, yp_comp_sample))
+                    brier_p = float(brier_score_loss(yt_sample, yp_prim_sample))
+                    brier_c = float(brier_score_loss(yt_sample, yp_comp_sample))
 
                     delta_aucs.append(auc_p - auc_c)
                     delta_briers.append(brier_p - brier_c)
                 except Exception:
                     continue
+
+            logger.info(
+                "   [Check 5] Completed %s vs. %s (%d resamples)", prim, comp, len(delta_aucs)
+            )
 
             min_valid_bootstraps = max(5, int(n_bootstrap * 0.5))
             if len(delta_aucs) >= min_valid_bootstraps:
