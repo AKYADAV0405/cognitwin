@@ -247,9 +247,9 @@ class SAKT(nn.Module):
         next_q_emb = self.problem_emb(next_problem)
         query = self.query_proj(torch.cat([next_c_emb, next_q_emb], dim=-1)) + pos_embedding
 
-        # Strict Causal Attention Mask: upper triangular elements set to -inf
+        # Strict Causal Attention Mask: upper triangular elements set to True (ignored)
         causal_mask = torch.triu(
-            torch.full((seq_len, seq_len), float("-inf"), device=device), diagonal=1
+            torch.ones((seq_len, seq_len), dtype=torch.bool, device=device), diagonal=1
         )
         # Key padding mask: True indicates positions to be ignored
         key_padding_mask = ~mask
