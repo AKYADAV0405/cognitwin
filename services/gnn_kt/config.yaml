@@ -1,0 +1,72 @@
+# ==============================================================================
+# TPA-GKT: Temporal Prerequisite-Aware Graph Knowledge Tracing
+# Configuration & Experiment Hyperparameters
+# ==============================================================================
+
+# Data Paths
+data_raw_dir: "../../data/raw"
+data_processed_dir: "./data/processed"
+outputs_dir: "./outputs"
+
+# Dataset Subsetting & Chunking
+top_n_concepts: 150
+min_interactions: 30
+max_interactions: 1000
+max_students: 5000
+fast_dev_max_students: 500
+chunksize: 500000
+
+# Zero-Leakage Split Protocol
+split_protocol: "student_70_15_15"
+train_ratio: 0.70
+val_ratio: 0.15
+test_ratio: 0.15
+
+# Multi-Seed Execution Protocol
+seeds:
+  - 42
+  - 100
+  - 2026
+
+# Graph Construction Parameters
+alpha_hier: 0.50
+transition_threshold: 0.05
+min_transition_count: 10
+gnn_type: "gcn"  # "gcn" | "gat"
+
+# Model Hyperparameters
+embedding_dim: 64
+hidden_dim: 128
+num_gnn_layers: 2
+num_rnn_layers: 1
+dropout: 0.2
+gat_heads: 4
+
+# Training Parameters
+learning_rate: 0.001
+weight_decay: 0.00001
+batch_size: 64
+num_epochs: 25
+patience: 5
+grad_clip: 5.0
+
+# Multi-Task Loss Weights
+loss_weight_correct: 1.0
+loss_weight_mastery: 0.2
+loss_weight_retention: 0.1
+
+# Ablation Flags
+ablations:
+  without_hier_graph: false
+  without_trans_graph: false
+  without_time_decay: false
+  without_attempt_hint: false
+  without_gnn_propagation: false
+  use_gat: false
+
+# Retention Delay Buckets (in seconds)
+retention_buckets:
+  immediate_practice_max_sec: 86400        # < 1 day
+  short_term_max_sec: 604800               # 1 - 7 days
+  medium_term_max_sec: 2592000             # 7 - 30 days
+  # >= 30 days is long_term_retention
