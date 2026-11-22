@@ -240,12 +240,20 @@ class TPAGKT(nn.Module):
         batch: dict[str, torch.Tensor],
         edge_index: torch.Tensor | None = None,
         edge_weight: torch.Tensor | None = None,
+        initial_state: torch.Tensor | None = None,
     ) -> dict[str, torch.Tensor]:
         """
         Execute forward propagation across Stages 1-4.
 
+        Args:
+          batch: collated interaction batch dictionary.
+          edge_index: optional graph topology override.
+          edge_weight: optional graph weights override.
+          initial_state: optional [1, B, hidden_dim] or [B, hidden_dim] learner state
+            for continuous hidden-state carryover across sequential windows.
+
         Returns:
-          dict containing losses, predictions, and latent representations.
+          dict containing losses, predictions, final learner states, and representations.
         """
         device = next(self.parameters()).device
 
@@ -293,8 +301,22 @@ class TPAGKT(nn.Module):
         )
         x = self.input_proj(interaction_repr)
 
-        # Recurrent state progression
-        h, _ = self.gru(x)  # [B, L, hidden_dim]
+        # Recurrent state progression (with optional continuous state carryover)
+        if initial_state is not None:
+            init_h = initial_state.to(device)
+            if init_h.dim() == 2:
+                init_h = init_h.unsqueeze(0)
+            h, _ = self.gru(x, init_h)
+        else:
+            h, _ = self.gru(x)  # [B, L, hidden_dim]
+
+        # Explicitly zero-mask hidden states at padded timesteps to ensure padding invariance
+        h = h * mask.unsqueeze(-1).float()
+
+        # Extract true unpadded final learner state
+        lengths = mask.sum(dim=1).long()
+        batch_indices = torch.arange(mask.size(0), device=device)
+        final_hidden_state = h[batch_indices, torch.clamp(lengths - 1, min=0)]
 
         # Stage 3: Head 1 — Next-Response Correctness Head
         next_concept = batch["next_concept"].to(device)
@@ -362,6 +384,13 @@ class TPAGKT(nn.Module):
             "logits_retention": logits_retention,
             "pred_retention": torch.sigmoid(logits_retention),
             "hidden_states": h,
+            "final_hidden_state": final_hidden_state,
+            "final_hidden_state_detached": final_hidden_state.detach(),
+            "gru_state_mode": (
+                "continuous_carryover"
+                if initial_state is not None
+                else "independent_window_reset"
+            ),
             "concept_graph_emb": g,
             "mask": mask,
             "next_mask": next_mask,

@@ -10,6 +10,7 @@ aligned next-step response targets and delayed-retention evaluation targets.
 from __future__ import annotations
 
 from pathlib import Path
+from typing import Any
 
 import numpy as np
 import pandas as pd
@@ -17,12 +18,42 @@ import torch
 from torch.utils.data import DataLoader, Dataset
 
 
+def partition_sequence_slices(
+    seq_len: int,
+    max_seq_len: int = 200,
+    min_seq_len: int = 2,
+) -> list[tuple[int, int]]:
+    """
+    Partition sequence of length seq_len into non-overlapping contiguous slices [start, end)
+    such that:
+      1. Every interaction index 0 <= i < seq_len is represented exactly once.
+      2. No slice length > max_seq_len.
+      3. No tail slice < min_seq_len is discarded if seq_len >= min_seq_len.
+    """
+    if seq_len < min_seq_len or seq_len <= max_seq_len:
+        return [(0, seq_len)]
+
+    slices: list[tuple[int, int]] = []
+    start = 0
+    while start < seq_len:
+        end = min(start + max_seq_len, seq_len)
+        rem = seq_len - end
+        if 0 < rem < min_seq_len:
+            borrow = min_seq_len - rem
+            end -= borrow
+        slices.append((start, end))
+        start = end
+
+    return slices
+
+
 class KTSequenceDataset(Dataset):
     """
     PyTorch Dataset for sequential Knowledge Tracing interactions.
 
-    Extracts student interaction sequences, slices sequences into windows of
-    length <= max_seq_len, and prepares aligned next-step and retention targets.
+    Extracts student interaction sequences, slices sequences into rebalanced windows of
+    length <= max_seq_len (zero interaction loss), and preserves continuous cross-window
+    next-step targets and aligned retention targets.
     """
 
     def __init__(
@@ -39,11 +70,11 @@ class KTSequenceDataset(Dataset):
         if not self.parquet_path.exists():
             raise FileNotFoundError(f"Parquet file not found: {self.parquet_path}")
 
-        self.samples: list[dict[str, np.ndarray]] = []
+        self.samples: list[dict[str, Any]] = []
         self._load_and_window_sequences()
 
     def _load_and_window_sequences(self) -> None:
-        """Load parquet file and slice each student into windows <= max_seq_len."""
+        """Load parquet file and partition each student into balanced windows <= max_seq_len."""
         df = pd.read_parquet(self.parquet_path)
 
         # Ensure deterministic chronological order
@@ -76,23 +107,63 @@ class KTSequenceDataset(Dataset):
             if seq_len < self.min_seq_len:
                 continue
 
-            # Slice into windows of length <= max_seq_len
-            for start_idx in range(0, seq_len, self.max_seq_len):
-                end_idx = min(start_idx + self.max_seq_len, seq_len)
-                sub_indices = indices[start_idx:end_idx]
+            # Non-overlapping contiguous slices with tail rebalancing (every interaction once)
+            slices = partition_sequence_slices(
+                seq_len=seq_len,
+                max_seq_len=self.max_seq_len,
+                min_seq_len=self.min_seq_len,
+            )
+            total_w = len(slices)
 
-                if len(sub_indices) < self.min_seq_len:
-                    # If remaining tail has length 1 and there is a preceding window, skip it
-                    continue
+            for w_idx, (start_idx, end_idx) in enumerate(slices):
+                sub_indices = indices[start_idx:end_idx]
+                sub_len = len(sub_indices)
+
+                # Next-step targets
+                next_concept = np.zeros(sub_len, dtype=np.int64)
+                next_problem = np.zeros(sub_len, dtype=np.int64)
+                next_correct = np.zeros(sub_len, dtype=np.float32)
+                next_orig_idx = np.full(sub_len, -1, dtype=np.int64)
+                has_next_step = np.zeros(sub_len, dtype=bool)
+
+                # Internal steps (0 <= j < sub_len - 1)
+                if sub_len > 1:
+                    next_concept[: sub_len - 1] = df["concept_idx"].values[sub_indices[1:]]
+                    next_problem[: sub_len - 1] = df["problem_idx"].values[sub_indices[1:]]
+                    next_correct[: sub_len - 1] = (
+                        df["is_correct"].values[sub_indices[1:]].astype(np.float32)
+                    )
+                    next_orig_idx[: sub_len - 1] = (
+                        df["orig_idx"].values[sub_indices[1:]].astype(np.int64)
+                    )
+                    has_next_step[: sub_len - 1] = True
+
+                # Boundary step (j = sub_len - 1):
+                # If subsequent interaction exists across the window boundary for this student
+                if end_idx < seq_len:
+                    next_global_idx = indices[end_idx]
+                    next_concept[sub_len - 1] = df["concept_idx"].values[next_global_idx]
+                    next_problem[sub_len - 1] = df["problem_idx"].values[next_global_idx]
+                    next_correct[sub_len - 1] = float(df["is_correct"].values[next_global_idx])
+                    next_orig_idx[sub_len - 1] = int(df["orig_idx"].values[next_global_idx])
+                    has_next_step[sub_len - 1] = True
 
                 sample = {
                     "uuid": str(_uuid),
+                    "window_idx": int(w_idx),
+                    "total_windows": int(total_w),
+                    "orig_idx": df["orig_idx"].values[sub_indices].astype(np.int64),
                     "concept_idx": df["concept_idx"].values[sub_indices].astype(np.int64),
                     "problem_idx": df["problem_idx"].values[sub_indices].astype(np.int64),
                     "is_correct": df["is_correct"].values[sub_indices].astype(np.int64),
                     "difficulty_id": df["difficulty_id"].values[sub_indices].astype(np.int64),
                     "is_hint_used": df["is_hint_used"].values[sub_indices].astype(np.int64),
                     "continuous_features": continuous_features[sub_indices],
+                    "has_next_step": has_next_step,
+                    "next_concept": next_concept,
+                    "next_problem": next_problem,
+                    "next_correct": next_correct,
+                    "next_orig_idx": next_orig_idx,
                     # Aligned delayed retention fields
                     "has_retention_target": (
                         df["has_retention_target"].values[sub_indices].astype(bool)
@@ -113,16 +184,17 @@ class KTSequenceDataset(Dataset):
     def __len__(self) -> int:
         return len(self.samples)
 
-    def __getitem__(self, idx: int) -> dict[str, np.ndarray]:
+    def __getitem__(self, idx: int) -> dict[str, Any]:
         return self.samples[idx]
 
 
-def collate_kt_batch(batch: list[dict[str, np.ndarray]]) -> dict[str, torch.Tensor]:
+def collate_kt_batch(batch: list[dict[str, Any]]) -> dict[str, torch.Tensor]:
     """
     Collate variable-length interaction windows into padded tensor batches.
 
     Returns:
       - mask: [B, L] boolean mask (True for real interactions, False for pad)
+      - orig_idx: [B, L] original interaction row ID (-1 for pad)
       - concept_idx: [B, L]
       - problem_idx: [B, L]
       - is_correct: [B, L]
@@ -132,6 +204,7 @@ def collate_kt_batch(batch: list[dict[str, np.ndarray]]) -> dict[str, torch.Tens
       - next_concept: [B, L] (concept query at t+1)
       - next_problem: [B, L] (problem query at t+1)
       - next_correct: [B, L] (ground-truth label at t+1)
+      - next_orig_idx: [B, L] (interaction row ID at t+1, -1 if no target)
       - next_mask: [B, L] boolean mask for valid next-step response predictions
       - ret_concept: [B, L] concept queried for retention
       - ret_log_delta: [B, L] log(1 + delta) elapsed delay
@@ -139,6 +212,8 @@ def collate_kt_batch(batch: list[dict[str, np.ndarray]]) -> dict[str, torch.Tens
       - ret_target: [B, L] retention ground-truth label
       - ret_bucket: [B, L] retention delay bucket ID (0..3)
       - ret_mask: [B, L] boolean mask for valid retention targets
+      - window_idx: [B] slice index within student history
+      - total_windows: [B] total slices for student
     """
     batch_size = len(batch)
     lengths = [len(item["concept_idx"]) for item in batch]
@@ -146,6 +221,7 @@ def collate_kt_batch(batch: list[dict[str, np.ndarray]]) -> dict[str, torch.Tens
 
     # Pre-allocate zero/false padded batch tensors
     mask = torch.zeros((batch_size, max_len), dtype=torch.bool)
+    orig_idx = torch.full((batch_size, max_len), -1, dtype=torch.long)
     concept_idx = torch.zeros((batch_size, max_len), dtype=torch.long)
     problem_idx = torch.zeros((batch_size, max_len), dtype=torch.long)
     is_correct = torch.zeros((batch_size, max_len), dtype=torch.long)
@@ -157,6 +233,7 @@ def collate_kt_batch(batch: list[dict[str, np.ndarray]]) -> dict[str, torch.Tens
     next_concept = torch.zeros((batch_size, max_len), dtype=torch.long)
     next_problem = torch.zeros((batch_size, max_len), dtype=torch.long)
     next_correct = torch.zeros((batch_size, max_len), dtype=torch.float32)
+    next_orig_idx = torch.full((batch_size, max_len), -1, dtype=torch.long)
     next_mask = torch.zeros((batch_size, max_len), dtype=torch.bool)
 
     # Retention prediction targets
@@ -171,6 +248,7 @@ def collate_kt_batch(batch: list[dict[str, np.ndarray]]) -> dict[str, torch.Tens
         seq_len = lengths[i]
 
         mask[i, :seq_len] = True
+        orig_idx[i, :seq_len] = torch.from_numpy(item["orig_idx"])
         concept_idx[i, :seq_len] = torch.from_numpy(item["concept_idx"])
         problem_idx[i, :seq_len] = torch.from_numpy(item["problem_idx"])
         is_correct[i, :seq_len] = torch.from_numpy(item["is_correct"])
@@ -178,14 +256,13 @@ def collate_kt_batch(batch: list[dict[str, np.ndarray]]) -> dict[str, torch.Tens
         is_hint_used[i, :seq_len] = torch.from_numpy(item["is_hint_used"])
         continuous_features[i, :seq_len] = torch.from_numpy(item["continuous_features"])
 
-        # Next-step targets exist for steps t in [0, seq_len - 2]
-        if seq_len > 1:
-            next_concept[i, : seq_len - 1] = torch.from_numpy(item["concept_idx"][1:])
-            next_problem[i, : seq_len - 1] = torch.from_numpy(item["problem_idx"][1:])
-            next_correct[i, : seq_len - 1] = torch.from_numpy(
-                item["is_correct"][1:].astype(np.float32)
-            )
-            next_mask[i, : seq_len - 1] = True
+        # Next-step targets directly from precomputed item arrays
+        has_nxt = item["has_next_step"]
+        next_mask[i, :seq_len] = torch.from_numpy(has_nxt)
+        next_concept[i, :seq_len] = torch.from_numpy(item["next_concept"])
+        next_problem[i, :seq_len] = torch.from_numpy(item["next_problem"])
+        next_correct[i, :seq_len] = torch.from_numpy(item["next_correct"])
+        next_orig_idx[i, :seq_len] = torch.from_numpy(item["next_orig_idx"])
 
         # Retention targets aligned with step t
         ret_concept[i, :seq_len] = torch.from_numpy(item["concept_idx"])
@@ -202,8 +279,9 @@ def collate_kt_batch(batch: list[dict[str, np.ndarray]]) -> dict[str, torch.Tens
             np.where(has_ret, item["retention_bucket_id"], -1).astype(np.int64)
         )
 
-    batch_dict = {
+    batch_dict: dict[str, Any] = {
         "mask": mask,
+        "orig_idx": orig_idx,
         "concept_idx": concept_idx,
         "problem_idx": problem_idx,
         "is_correct": is_correct,
@@ -213,6 +291,7 @@ def collate_kt_batch(batch: list[dict[str, np.ndarray]]) -> dict[str, torch.Tens
         "next_concept": next_concept,
         "next_problem": next_problem,
         "next_correct": next_correct,
+        "next_orig_idx": next_orig_idx,
         "next_mask": next_mask,
         "ret_concept": ret_concept,
         "ret_log_delta": ret_log_delta,
@@ -220,7 +299,14 @@ def collate_kt_batch(batch: list[dict[str, np.ndarray]]) -> dict[str, torch.Tens
         "ret_target": ret_target,
         "ret_bucket": ret_bucket,
         "ret_mask": ret_mask,
+        "window_idx": torch.tensor([item.get("window_idx", 0) for item in batch], dtype=torch.long),
+        "total_windows": torch.tensor(
+            [item.get("total_windows", 1) for item in batch], dtype=torch.long
+        ),
     }
+    if len(batch) > 0 and "uuid" in batch[0]:
+        batch_dict["uuid"] = [item["uuid"] for item in batch]
+    return batch_dict
     if len(batch) > 0 and "uuid" in batch[0]:
         batch_dict["uuid"] = [item["uuid"] for item in batch]
     return batch_dict

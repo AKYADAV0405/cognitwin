@@ -85,10 +85,12 @@ class DKT(nn.Module):
     def forward(
         self,
         batch: dict[str, torch.Tensor],
+        initial_state: torch.Tensor | None = None,
         **kwargs: Any,
     ) -> dict[str, torch.Tensor]:
         device = next(self.parameters()).device
 
+        mask = batch.get("mask", torch.ones_like(batch["concept_idx"], dtype=torch.bool)).to(device)
         concept_idx = batch["concept_idx"].to(device)
         problem_idx = batch["problem_idx"].to(device)
         is_correct = batch["is_correct"].to(device)
@@ -108,7 +110,22 @@ class DKT(nn.Module):
         e_r = self.correct_emb(is_correct)
 
         x = self.input_proj(torch.cat([e_c, e_q, e_r], dim=-1))
-        h, _ = self.gru(x)
+
+        if initial_state is not None:
+            init_h = initial_state.to(device)
+            if init_h.dim() == 2:
+                init_h = init_h.unsqueeze(0)
+            h, _ = self.gru(x, init_h)
+        else:
+            h, _ = self.gru(x)
+
+        # Zero-mask padding hidden states
+        h = h * mask.unsqueeze(-1).float()
+
+        # Extract unpadded final learner state
+        lengths = mask.sum(dim=1).long()
+        batch_indices = torch.arange(mask.size(0), device=device)
+        final_hidden_state = h[batch_indices, torch.clamp(lengths - 1, min=0)]
 
         # Next-step query features
         next_c_emb = self.concept_emb(next_concept)
@@ -126,6 +143,13 @@ class DKT(nn.Module):
             "logits_response": logits,
             "pred_response": torch.sigmoid(logits),
             "hidden_states": h,
+            "final_hidden_state": final_hidden_state,
+            "final_hidden_state_detached": final_hidden_state.detach(),
+            "gru_state_mode": (
+                "continuous_carryover"
+                if initial_state is not None
+                else "independent_window_reset"
+            ),
         }
 
 
@@ -191,6 +215,7 @@ class SAKT(nn.Module):
     ) -> dict[str, torch.Tensor]:
         device = next(self.parameters()).device
 
+        mask = batch.get("mask", torch.ones_like(batch["concept_idx"], dtype=torch.bool)).to(device)
         concept_idx = batch["concept_idx"].to(device)
         problem_idx = batch["problem_idx"].to(device)
         is_correct = batch["is_correct"].to(device)
@@ -226,16 +251,27 @@ class SAKT(nn.Module):
         causal_mask = torch.triu(
             torch.full((seq_len, seq_len), float("-inf"), device=device), diagonal=1
         )
+        # Key padding mask: True indicates positions to be ignored
+        key_padding_mask = ~mask
 
         attn_out, _ = self.attn(
             query=query,
             key=interact,
             value=interact,
             attn_mask=causal_mask,
+            key_padding_mask=key_padding_mask,
         )
         x = self.norm1(query + self.dropout(attn_out))
         ffn_out = self.ffn(x)
         x = self.norm2(x + self.dropout(ffn_out))
+
+        # Zero-mask padding positions in hidden representation
+        x = x * mask.unsqueeze(-1).float()
+
+        # Extract unpadded final learner state
+        lengths = mask.sum(dim=1).long()
+        batch_indices = torch.arange(mask.size(0), device=device)
+        final_hidden_state = x[batch_indices, torch.clamp(lengths - 1, min=0)]
 
         logits = self.head(x).squeeze(-1)
 
@@ -249,6 +285,8 @@ class SAKT(nn.Module):
             "logits_response": logits,
             "pred_response": torch.sigmoid(logits),
             "hidden_states": x,
+            "final_hidden_state": final_hidden_state,
+            "final_hidden_state_detached": final_hidden_state.detach(),
         }
 
 
@@ -331,10 +369,12 @@ class GKT(nn.Module):
         batch: dict[str, torch.Tensor],
         edge_index: torch.Tensor | None = None,
         edge_weight: torch.Tensor | None = None,
+        initial_state: torch.Tensor | None = None,
         **kwargs: Any,
     ) -> dict[str, torch.Tensor]:
         device = next(self.parameters()).device
 
+        mask = batch.get("mask", torch.ones_like(batch["concept_idx"], dtype=torch.bool)).to(device)
         e_idx = edge_index if edge_index is not None else self.edge_index
         e_w = edge_weight if edge_weight is not None else self.edge_weight
 
@@ -370,7 +410,22 @@ class GKT(nn.Module):
         e_r = self.correct_emb(is_correct)
 
         x = self.input_proj(torch.cat([e_c, e_q, e_r], dim=-1))
-        h, _ = self.gru(x)
+
+        if initial_state is not None:
+            init_h = initial_state.to(device)
+            if init_h.dim() == 2:
+                init_h = init_h.unsqueeze(0)
+            h, _ = self.gru(x, init_h)
+        else:
+            h, _ = self.gru(x)
+
+        # Zero-mask padding hidden states
+        h = h * mask.unsqueeze(-1).float()
+
+        # Extract unpadded final learner state
+        lengths = mask.sum(dim=1).long()
+        batch_indices = torch.arange(mask.size(0), device=device)
+        final_hidden_state = h[batch_indices, torch.clamp(lengths - 1, min=0)]
 
         next_c_emb = g[next_concept]
         next_q_emb = self.problem_emb(next_problem)
@@ -387,5 +442,12 @@ class GKT(nn.Module):
             "logits_response": logits,
             "pred_response": torch.sigmoid(logits),
             "hidden_states": h,
+            "final_hidden_state": final_hidden_state,
+            "final_hidden_state_detached": final_hidden_state.detach(),
             "concept_graph_emb": g,
+            "gru_state_mode": (
+                "continuous_carryover"
+                if initial_state is not None
+                else "independent_window_reset"
+            ),
         }
