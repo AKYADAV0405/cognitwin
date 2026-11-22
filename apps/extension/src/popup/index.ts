@@ -138,30 +138,48 @@ document.addEventListener("DOMContentLoaded", async () => {
         return;
       }
 
-      // Query content script with programmatic injection fallback if not yet connected
+      // Query content script (or background PDF tracker for PDF documents)
       if (activeTabId) {
         let tabSession: TabSessionState | null = null;
-        try {
-          tabSession = await chrome.tabs.sendMessage(activeTabId, {
-            type: "GET_PAGE_SESSION_STATE",
-          });
-        } catch (err: unknown) {
-          const errMsg = err instanceof Error ? err.message : String(err);
-          console.warn("[Cognitwin Popup] Direct message failed, attempting auto-injection:", errMsg);
-          // Try auto-injecting content script if scripting permission is available
-          if (chrome.scripting && activeTabId) {
-            try {
-              await chrome.scripting.executeScript({
-                target: { tabId: activeTabId },
-                files: ["content.js"],
-              });
-              await new Promise((r) => setTimeout(r, 200));
-              tabSession = await chrome.tabs.sendMessage(activeTabId, {
-                type: "GET_PAGE_SESSION_STATE",
-              });
-            } catch (injectErr: unknown) {
-              const injectMsg = injectErr instanceof Error ? injectErr.message : String(injectErr);
-              console.warn("[Cognitwin Popup] Injection retry also failed:", injectMsg);
+
+        if (urlInfo.mediaType === "pdf") {
+          try {
+            const pdfRes = await chrome.runtime.sendMessage({
+              type: "GET_BACKGROUND_PDF_SESSION",
+              url: urlInfo.sanitizedUrl,
+              tabId: activeTabId,
+            });
+            if (pdfRes && pdfRes.hasSession) {
+              tabSession = pdfRes as TabSessionState;
+            }
+          } catch (err: unknown) {
+            console.warn("[Cognitwin Popup] Failed querying background PDF session:", err);
+          }
+        }
+
+        if (!tabSession) {
+          try {
+            tabSession = await chrome.tabs.sendMessage(activeTabId, {
+              type: "GET_PAGE_SESSION_STATE",
+            });
+          } catch (err: unknown) {
+            const errMsg = err instanceof Error ? err.message : String(err);
+            console.warn("[Cognitwin Popup] Direct message failed, attempting auto-injection:", errMsg);
+            // Try auto-injecting content script if scripting permission is available (non-PDF only)
+            if (chrome.scripting && activeTabId && urlInfo.mediaType !== "pdf") {
+              try {
+                await chrome.scripting.executeScript({
+                  target: { tabId: activeTabId },
+                  files: ["content.js"],
+                });
+                await new Promise((r) => setTimeout(r, 200));
+                tabSession = await chrome.tabs.sendMessage(activeTabId, {
+                  type: "GET_PAGE_SESSION_STATE",
+                });
+              } catch (injectErr: unknown) {
+                const injectMsg = injectErr instanceof Error ? injectErr.message : String(injectErr);
+                console.warn("[Cognitwin Popup] Injection retry also failed:", injectMsg);
+              }
             }
           }
         }

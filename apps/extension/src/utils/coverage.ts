@@ -11,7 +11,7 @@ export function calculateArticleCoverage(
   viewedWords: number,
   activeDwellSeconds: number,
   totalArticleWords: number,
-  wordsPerMinute: number = 200
+  wordsPerMinute: number = 220
 ): number {
   if (totalArticleWords <= 0 || activeDwellSeconds <= 0 || viewedWords <= 0) {
     return 0.0;
@@ -26,4 +26,20 @@ export function calculateArticleCoverage(
 
   // Round to 3 decimal places
   return Math.round(clampedCoverage * 1000) / 1000;
+}
+
+/**
+ * Checks if an element has continuously remained visible in the viewport
+ * for at least the specified duration (default 2000ms / 2 seconds).
+ * Prevents fast-scrolling past elements from falsely marking them viewed.
+ */
+export function hasMinimumViewportDwell(
+  enteredAtMs: number,
+  checkedAtMs: number,
+  minDurationMs: number = 2000
+): boolean {
+  if (enteredAtMs <= 0 || checkedAtMs < enteredAtMs) {
+    return false;
+  }
+  return checkedAtMs - enteredAtMs >= minDurationMs;
 }

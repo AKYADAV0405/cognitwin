@@ -97,8 +97,9 @@ export function sanitizeUrl(rawUrl: string): SanitizedUrlResult {
       };
     }
 
-    // 5. PDF detection
-    if (parsed.pathname.toLowerCase().endsWith(".pdf")) {
+    // 5. PDF detection (.pdf extension or /pdf/ path like arxiv.org/pdf/...)
+    const pathLower = parsed.pathname.toLowerCase();
+    if (pathLower.endsWith(".pdf") || pathLower.includes("/pdf/")) {
       return {
         sanitizedUrl: `${parsed.origin}${parsed.pathname}`,
         domain: parsed.hostname,
@@ -142,4 +143,24 @@ export function sanitizeUrl(rawUrl: string): SanitizedUrlResult {
       mediaType: "article",
     };
   }
+}
+
+/**
+ * Checks whether a URL or tab corresponds to a PDF document.
+ */
+export function isPdfUrl(rawUrl: string, pageTitle?: string): boolean {
+  if (!rawUrl) return false;
+  try {
+    const parsed = new URL(rawUrl);
+    const pathLower = parsed.pathname.toLowerCase();
+    if (pathLower.endsWith(".pdf") || pathLower.includes("/pdf/")) {
+      return true;
+    }
+    if (pageTitle && (pageTitle.toLowerCase().endsWith(".pdf") || pageTitle.includes("[PDF]"))) {
+      return true;
+    }
+  } catch {
+    return false;
+  }
+  return false;
 }

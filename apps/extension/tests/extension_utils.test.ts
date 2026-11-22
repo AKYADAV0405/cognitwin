@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
-import { sanitizeUrl } from "../src/utils/url";
+import { sanitizeUrl, isPdfUrl } from "../src/utils/url";
 import { isBlockedDomain } from "../src/utils/blocklist";
-import { calculateArticleCoverage } from "../src/utils/coverage";
+import { calculateArticleCoverage, hasMinimumViewportDwell } from "../src/utils/coverage";
 import {
   extractKeywords,
   extractHeadings,
@@ -9,8 +9,22 @@ import {
   cleanPageTitle,
 } from "../src/utils/nlp";
 import { checkRevisit, updateRevisitCache } from "../src/utils/revisit";
-import { calculateVideoCoverage, isRewindSeek, getBucketIndex } from "../src/utils/video";
+import {
+  calculateVideoCoverage,
+  isRewindSeek,
+  getBucketIndex,
+  shouldTrackVideoDwell,
+  extractChapterTitle,
+  appendWatchedChapter,
+} from "../src/utils/video";
 import { processSleepGap, coalesceTelemetryEvents, RawTelemetryEvent } from "../src/utils/coalesce";
+import {
+  calculateUnsyncedDwell,
+  shouldFlushDelta,
+  isWarmSessionValid,
+  WarmSessionState,
+} from "../src/utils/session";
+import { createPdfSession, calculatePdfCoverage } from "../src/utils/pdf";
 
 describe("1. URL Sanitization & Title Cleaning", () => {
   it("strips fragments and query parameters from standard articles", () => {
@@ -303,5 +317,172 @@ describe("7. Sleep Gap Delta Cap & Coalescing Engine", () => {
     expect(coalesced[0].viewed_headings).toContain("Intro");
     expect(coalesced[0].viewed_headings).toContain("Hooks");
     expect(coalesced[0].top_keywords).toContain("state");
+  });
+});
+
+describe("8. Tab-Switch Pause/Resume & Incremental Dwell (No Reset, No Double-Counting)", () => {
+  it("computes unsynced dwell delta correctly without double-counting", () => {
+    // Session starts: 20s active dwell, 0s synced
+    expect(calculateUnsyncedDwell(20, 0)).toBe(20);
+    expect(shouldFlushDelta(20, 15)).toBe(true);
+
+    // After syncing first 20s: total=20s, synced=20s -> unsynced=0s
+    expect(calculateUnsyncedDwell(20, 20)).toBe(0);
+    expect(shouldFlushDelta(0, 15)).toBe(false);
+
+    // User switches tab (pause) and returns (resume): studies 10s more -> total=30s
+    expect(calculateUnsyncedDwell(30, 20)).toBe(10);
+    expect(shouldFlushDelta(10, 15)).toBe(false); // below 15s delta threshold
+
+    // Studies another 15s -> total=45s, synced=20s -> unsynced=25s
+    expect(calculateUnsyncedDwell(45, 20)).toBe(25);
+    expect(shouldFlushDelta(25, 15)).toBe(true);
+
+    // After second sync: synced becomes 45s, unsynced becomes 0s
+    expect(calculateUnsyncedDwell(45, 45)).toBe(0);
+  });
+
+  it("validates warm session within 1-hour window and rejects stale/mismatched URLs", () => {
+    const now = Date.now();
+    const warm: WarmSessionState = {
+      sanitizedUrl: "https://geeksforgeeks.org/data-preprocessing",
+      sourceDomain: "geeksforgeeks.org",
+      pageTitle: "Data Preprocessing",
+      mediaType: "article",
+      startedAt: new Date(now - 300000).toISOString(),
+      activeDwellSeconds: 45,
+      syncedDwellSeconds: 20,
+      viewedWords: 150,
+      totalWords: 500,
+      viewedHeadings: ["Introduction", "Scaling"],
+      topKeywords: ["data", "preprocessing"],
+      clientEventId: "warm-evt-1",
+      lastUpdatedMs: now - 60000, // 1 minute ago
+    };
+
+    // Same URL and fresh (< 1h) -> valid resume
+    expect(isWarmSessionValid(warm, "https://geeksforgeeks.org/data-preprocessing", 3600000, now)).toBe(true);
+
+    // Different URL -> invalid
+    expect(isWarmSessionValid(warm, "https://react.dev/learn", 3600000, now)).toBe(false);
+
+    // Stale session (> 1h ago) -> invalid
+    expect(isWarmSessionValid(warm, "https://geeksforgeeks.org/data-preprocessing", 3600000, now + 4000000)).toBe(false);
+
+    // Null session -> invalid
+    expect(isWarmSessionValid(null, "https://geeksforgeeks.org/data-preprocessing")).toBe(false);
+  });
+});
+
+describe("9. Genuine Browser PDF Tracking (Background)", () => {
+  it("detects PDF URLs (.pdf and /pdf/ paths like arXiv) accurately", () => {
+    expect(isPdfUrl("https://arxiv.org/pdf/1706.03762.pdf")).toBe(true);
+    expect(isPdfUrl("https://arxiv.org/pdf/1706.03762")).toBe(true);
+    expect(isPdfUrl("https://example.com/docs/paper.PDF")).toBe(true);
+    expect(isPdfUrl("https://example.com/viewer", "Attention Is All You Need.pdf")).toBe(true);
+    expect(isPdfUrl("https://example.com/viewer", "Research Report [PDF]")).toBe(true);
+
+    // Non-PDF URLs
+    expect(isPdfUrl("https://react.dev/learn")).toBe(false);
+    expect(isPdfUrl("https://youtube.com/watch?v=123")).toBe(false);
+    expect(isPdfUrl("https://docs.python.org/3/tutorial/")).toBe(false);
+  });
+
+  it("creates and initializes a background PDF session", () => {
+    const session = createPdfSession(
+      101,
+      "https://arxiv.org/pdf/1706.03762",
+      "arxiv.org",
+      "Attention Is All You Need.pdf"
+    );
+
+    expect(session.tabId).toBe(101);
+    expect(session.mediaType).toBe("pdf" as const);
+    expect(session.pageTitle).toBe("Attention Is All You Need");
+    expect(session.sourceDomain).toBe("arxiv.org");
+    expect(session.activeDwellSeconds).toBe(0);
+    expect(session.syncedDwellSeconds).toBe(0);
+    expect(session.topKeywords.length).toBeGreaterThan(0);
+  });
+
+  it("computes reading-speed bounded coverage for PDFs at 220 WPM", () => {
+    // 60s dwell on 2500-word paper: 60 * (220/60) = 220 words / 2500 = 0.088
+    const cov = calculatePdfCoverage(60, 2500, 220);
+    expect(cov).toBe(0.088);
+
+    // 0s dwell -> 0
+    expect(calculatePdfCoverage(0, 2500, 220)).toBe(0.0);
+  });
+});
+
+describe("10. YouTube Lecture Guardrails: Muted Without Captions & Chapter Capture", () => {
+  it("pauses video dwell when muted UNLESS active captions are visible", () => {
+    // Playing + Unmuted -> Track
+    expect(shouldTrackVideoDwell(true, false, false)).toBe(true);
+
+    // Playing + Muted + No Captions -> PAUSE (false)
+    expect(shouldTrackVideoDwell(true, true, false)).toBe(false);
+
+    // Playing + Muted + Active Captions Visible -> TRACK (true)
+    expect(shouldTrackVideoDwell(true, true, true)).toBe(true);
+
+    // Video Paused -> PAUSE (false) regardless of audio/captions
+    expect(shouldTrackVideoDwell(false, false, false)).toBe(false);
+    expect(shouldTrackVideoDwell(false, true, true)).toBe(false);
+  });
+
+  it("extracts and cleans YouTube chapter titles", () => {
+    expect(extractChapterTitle("02:15 Introduction to Raft")).toBe("Introduction to Raft");
+    expect(extractChapterTitle("[10:30] Consensus Protocols")).toBe("Consensus Protocols");
+    expect(extractChapterTitle("(01:45:00) System Architecture Overview")).toBe("System Architecture Overview");
+    expect(extractChapterTitle("No timestamp chapter")).toBe("No timestamp chapter");
+  });
+
+  it("appends watched chapters up to 6 unique headings", () => {
+    let headings: string[] = ["00:00 Intro"];
+    headings = appendWatchedChapter(headings, "02:15 Raft Overview", 6);
+    expect(headings.length).toBe(2);
+    expect(headings).toContain("Raft Overview");
+
+    // Duplicate chapter (different case or spacing) -> not added
+    headings = appendWatchedChapter(headings, "raft overview", 6);
+    expect(headings.length).toBe(2);
+
+    // Add more chapters up to cap of 6
+    headings = appendWatchedChapter(headings, "05:00 Leader Election", 6);
+    headings = appendWatchedChapter(headings, "08:30 Log Replication", 6);
+    headings = appendWatchedChapter(headings, "12:00 Safety Properties", 6);
+    headings = appendWatchedChapter(headings, "15:45 Cluster Membership", 6);
+    headings = appendWatchedChapter(headings, "19:00 Seventh Chapter Beyond Limit", 6);
+
+    expect(headings.length).toBe(6);
+    expect(headings).not.toContain("Seventh Chapter Beyond Limit");
+  });
+});
+
+describe("11. Article Viewport Reading: 2-Second Dwell Filter", () => {
+  it("enforces 2-second viewport dwell threshold before marking elements viewed", () => {
+    const t0 = 100000;
+
+    // Fast scroll past element: only in viewport for 800ms (< 2000ms)
+    expect(hasMinimumViewportDwell(t0, t0 + 800, 2000)).toBe(false);
+
+    // Barely under 2s: 1999ms -> false
+    expect(hasMinimumViewportDwell(t0, t0 + 1999, 2000)).toBe(false);
+
+    // Read attentively: 2500ms (>= 2000ms) -> true!
+    expect(hasMinimumViewportDwell(t0, t0 + 2500, 2000)).toBe(true);
+
+    // Edge cases
+    expect(hasMinimumViewportDwell(0, 5000, 2000)).toBe(false);
+    expect(hasMinimumViewportDwell(t0, t0 - 100, 2000)).toBe(false);
+  });
+
+  it("calculates article coverage with 220 WPM reading speed bounded formula", () => {
+    // 500 viewed words, 120s dwell, 1000 total words
+    // 120s * (220/60) = 440 words bounded
+    // min(500, 440) = 440 words verified / 1000 = 0.44
+    const cov = calculateArticleCoverage(500, 120, 1000, 220);
+    expect(cov).toBe(0.44);
   });
 });

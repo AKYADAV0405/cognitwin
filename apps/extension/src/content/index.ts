@@ -2,14 +2,26 @@ console.info("[Cognitwin] content script active on", location.hostname, location
 
 import { sanitizeUrl } from "../utils/url";
 import { isBlockedDomain } from "../utils/blocklist";
-import { calculateArticleCoverage } from "../utils/coverage";
+import { calculateArticleCoverage, hasMinimumViewportDwell } from "../utils/coverage";
 import {
   extractKeywords,
   extractHeadings,
   extractKeywordsFromFilename,
   cleanPageTitle,
 } from "../utils/nlp";
-import { calculateVideoCoverage, isRewindSeek, getBucketIndex } from "../utils/video";
+import {
+  calculateVideoCoverage,
+  isRewindSeek,
+  getBucketIndex,
+  shouldTrackVideoDwell,
+  appendWatchedChapter,
+} from "../utils/video";
+import {
+  WarmSessionState,
+  calculateUnsyncedDwell,
+  shouldFlushDelta,
+  isWarmSessionValid,
+} from "../utils/session";
 
 interface ContentSession {
   clientEventId: string;
@@ -35,9 +47,16 @@ interface ContentSession {
 
 let currentSession: ContentSession | null = null;
 let activeDwellSeconds = 0;
+let syncedDwellSeconds = 0;
 let lastHeartbeatTime = Date.now();
 let isTabVisible = document.visibilityState === "visible";
 let isStudyModeOn = false;
+
+// Viewport IntersectionObserver state for genuine reading
+let articleObserver: IntersectionObserver | null = null;
+const observedElementsMap = new Map<Element, number>(); // element -> enter timestamp ms
+const countedParagraphs = new WeakSet<Element>();
+const viewedHeadingsSet = new Set<string>();
 
 // Generate UUIDv4 client side
 function generateUUID(): string {
@@ -49,6 +68,57 @@ function generateUUID(): string {
     const v = c === "x" ? r : (r & 0x3) | 0x8;
     return v.toString(16);
   });
+}
+
+function getSessionStorageKey(url: string): string {
+  return `cognitwin_warm_${url}`;
+}
+
+async function getWarmSession(url: string): Promise<WarmSessionState | null> {
+  try {
+    if (typeof chrome !== "undefined" && chrome.storage && chrome.storage.session) {
+      const key = getSessionStorageKey(url);
+      const res = await chrome.storage.session.get([key]);
+      const session = res[key] as WarmSessionState | undefined;
+      if (session && isWarmSessionValid(session, url)) {
+        return session;
+      }
+    }
+  } catch {
+    // Session storage unavailable
+  }
+  return null;
+}
+
+async function persistWarmSession(): Promise<void> {
+  if (!currentSession) return;
+  try {
+    if (typeof chrome !== "undefined" && chrome.storage && chrome.storage.session) {
+      const key = getSessionStorageKey(currentSession.sourceUrl);
+      const warm: WarmSessionState = {
+        sanitizedUrl: currentSession.sourceUrl,
+        sourceDomain: currentSession.sourceDomain,
+        pageTitle: currentSession.pageTitle,
+        metaDescription: currentSession.metaDescription,
+        mediaType: currentSession.mediaType,
+        startedAt: currentSession.startedAt,
+        activeDwellSeconds,
+        syncedDwellSeconds,
+        viewedWords: currentSession.viewedWords,
+        totalWords: currentSession.totalWords,
+        viewedHeadings: currentSession.viewedHeadings,
+        topKeywords: currentSession.topKeywords,
+        watchedBuckets: Array.from(currentSession.watchedBuckets),
+        rewindCount: currentSession.rewindCount,
+        pauseCount: currentSession.pauseCount,
+        clientEventId: currentSession.clientEventId,
+        lastUpdatedMs: Date.now(),
+      };
+      await chrome.storage.session.set({ [key]: warm });
+    }
+  } catch {
+    // Ignore storage write errors
+  }
 }
 
 function extractMetaDescription(): string | null {
@@ -133,14 +203,15 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
         coveragePct = calculateArticleCoverage(
           currentSession.viewedWords,
           activeDwellSeconds,
-          currentSession.totalWords
+          currentSession.totalWords,
+          220
         );
       }
     }
 
     sendResponse({
       hasSession: !!currentSession,
-      isTracking: isStudyModeOn && !!currentSession,
+      isTracking: isStudyModeOn && !!currentSession && isTabVisible,
       pageTitle: currentSession?.pageTitle || cleanPageTitle(document.title),
       sourceUrl: currentSession?.sourceUrl || window.location.href,
       sourceDomain: currentSession?.sourceDomain || window.location.hostname,
@@ -158,22 +229,29 @@ chrome.runtime.onMessage.addListener((message, _sender, sendResponse) => {
       sendResponse({ flushed: false, message: "No active session on this tab." });
       return true;
     }
-    if (activeDwellSeconds < 15) {
+    const unsyncedDwell = calculateUnsyncedDwell(activeDwellSeconds, syncedDwellSeconds);
+    if (unsyncedDwell < 15) {
+      const msg =
+        syncedDwellSeconds > 0
+          ? `Need at least 15s of new active study time before syncing (already synced: ${syncedDwellSeconds}s, current total: ${activeDwellSeconds}s).`
+          : `Need at least 15s of active study time before syncing (current: ${activeDwellSeconds}s).`;
       sendResponse({
         flushed: false,
         dwell: activeDwellSeconds,
-        message: `Need at least 15s of active study time before syncing (current: ${activeDwellSeconds}s).`,
+        message: msg,
       });
       return true;
     }
+
     const eventPayload = buildSessionPayload("manual_sync_now");
-    activeDwellSeconds = 0;
+    syncedDwellSeconds = activeDwellSeconds;
     currentSession.clientEventId = generateUUID();
-    currentSession.startedAt = new Date().toISOString();
+    persistWarmSession();
+
     sendResponse({
       flushed: true,
       event: eventPayload,
-      dwell: eventPayload ? eventPayload.active_dwell_seconds : 0,
+      dwell: activeDwellSeconds,
     });
     return true;
   }
@@ -206,7 +284,7 @@ try {
 // -------------------------------------------------------------
 // TRACKING INITIALIZATION
 // -------------------------------------------------------------
-async function initContentTracker(immediate: boolean = false): Promise<void> {
+async function initContentTracker(immediate: boolean = false, overrideTitle?: string): Promise<void> {
   const currentUrl = window.location.href;
   const urlInfo = sanitizeUrl(currentUrl);
 
@@ -231,35 +309,49 @@ async function initContentTracker(immediate: boolean = false): Promise<void> {
 
   console.info("[Cognitwin] Initializing tracking session. Study Mode:", isStudyModeOn);
   if (immediate || document.readyState === "complete") {
-    startTrackingSession(urlInfo);
+    startTrackingSession(urlInfo, overrideTitle);
   } else {
     setTimeout(() => {
-      startTrackingSession(urlInfo);
+      startTrackingSession(urlInfo, overrideTitle);
     }, 1200);
   }
 }
 
-function startTrackingSession(urlInfo: ReturnType<typeof sanitizeUrl>): void {
+async function startTrackingSession(
+  urlInfo: ReturnType<typeof sanitizeUrl>,
+  overrideTitle?: string
+): Promise<void> {
   const now = new Date().toISOString();
-  activeDwellSeconds = 0;
   lastHeartbeatTime = Date.now();
 
+  // Check for cached warm session on same URL
+  const warm = await getWarmSession(urlInfo.sanitizedUrl);
+  if (warm) {
+    console.info("[Cognitwin] Resuming warm session for:", urlInfo.sanitizedUrl, "dwell:", warm.activeDwellSeconds);
+    activeDwellSeconds = warm.activeDwellSeconds;
+    syncedDwellSeconds = warm.syncedDwellSeconds;
+  } else {
+    activeDwellSeconds = 0;
+    syncedDwellSeconds = 0;
+  }
+
   if (urlInfo.mediaType === "video") {
-    setupVideoObserver(urlInfo, now);
+    setupVideoObserver(urlInfo, now, warm, overrideTitle);
   } else if (urlInfo.mediaType === "pdf") {
     const { title, keywords } = extractKeywordsFromFilename(window.location.href);
+    const finalTitle = overrideTitle || warm?.pageTitle || title;
     currentSession = {
-      clientEventId: generateUUID(),
+      clientEventId: warm?.clientEventId || generateUUID(),
       sourceUrl: urlInfo.sanitizedUrl,
       sourceDomain: urlInfo.domain,
-      pageTitle: title,
-      metaDescription: `PDF Document: ${title}`,
+      pageTitle: finalTitle,
+      metaDescription: `PDF Document: ${finalTitle}`,
       mediaType: "pdf",
-      startedAt: now,
-      totalWords: 500,
-      viewedWords: 500,
-      viewedHeadings: [title],
-      topKeywords: keywords,
+      startedAt: warm?.startedAt || now,
+      totalWords: 2500,
+      viewedWords: warm?.viewedWords || 250,
+      viewedHeadings: warm?.viewedHeadings || [finalTitle],
+      topKeywords: warm?.topKeywords || keywords,
       watchedBuckets: new Set(),
       rewindCount: 0,
       pauseCount: 0,
@@ -267,11 +359,21 @@ function startTrackingSession(urlInfo: ReturnType<typeof sanitizeUrl>): void {
       playbackRates: [],
     };
   } else {
-    setupArticleObserver(urlInfo, now);
+    setupArticleObserver(urlInfo, now, warm, overrideTitle);
   }
 }
 
-function setupArticleObserver(urlInfo: ReturnType<typeof sanitizeUrl>, startTimeIso: string): void {
+function setupArticleObserver(
+  urlInfo: ReturnType<typeof sanitizeUrl>,
+  startTimeIso: string,
+  warm?: WarmSessionState | null,
+  overrideTitle?: string
+): void {
+  if (articleObserver) {
+    articleObserver.disconnect();
+    observedElementsMap.clear();
+  }
+
   const root =
     document.querySelector("main") ||
     document.querySelector("article") ||
@@ -280,7 +382,7 @@ function setupArticleObserver(urlInfo: ReturnType<typeof sanitizeUrl>, startTime
 
   if (!root) return;
 
-  const cleanTitle = cleanPageTitle(document.title || urlInfo.domain);
+  const cleanTitle = overrideTitle || cleanPageTitle(document.title || urlInfo.domain);
   const metaDescription = extractMetaDescription();
 
   // Clone and strip headers, footers, navs, aside
@@ -291,12 +393,12 @@ function setupArticleObserver(urlInfo: ReturnType<typeof sanitizeUrl>, startTime
   });
 
   const rawText = clone.textContent || clone.innerText || "";
-  const totalWords = Math.max(1, rawText.trim().split(/\s+/).length);
+  const totalWords = Math.max(1, rawText.trim().split(/\s+/).filter(Boolean).length);
 
-  // Extract up to 6 headings
-  const headingElements = Array.from(root.querySelectorAll("h1, h2, h3"));
-  const rawHeadings = headingElements.map((h) => (h as HTMLElement).textContent || (h as HTMLElement).innerText || "");
-  const headings = extractHeadings(rawHeadings, 6);
+  // Initialize viewed headings set
+  viewedHeadingsSet.clear();
+  const initialHeadings = warm?.viewedHeadings || [];
+  initialHeadings.forEach((h) => viewedHeadingsSet.add(h));
 
   // Extract code snippets from <code> and <pre> tags for 3x technical weighting
   const codeElements = Array.from(root.querySelectorAll("code, pre"));
@@ -308,22 +410,22 @@ function setupArticleObserver(urlInfo: ReturnType<typeof sanitizeUrl>, startTime
   // High-signal keywords with 3x weighting for title/headings/code and 2-word technical bigrams
   const keywords = extractKeywords(rawText, {
     title: cleanTitle,
-    headings,
+    headings: Array.from(viewedHeadingsSet),
     codeSnippets,
     maxKeywords: 10,
   });
 
   currentSession = {
-    clientEventId: generateUUID(),
+    clientEventId: warm?.clientEventId || generateUUID(),
     sourceUrl: urlInfo.sanitizedUrl,
     sourceDomain: urlInfo.domain,
     pageTitle: cleanTitle,
     metaDescription,
     mediaType: urlInfo.mediaType,
-    startedAt: startTimeIso,
+    startedAt: warm?.startedAt || startTimeIso,
     totalWords,
-    viewedWords: Math.min(totalWords, 100),
-    viewedHeadings: headings,
+    viewedWords: warm?.viewedWords || 0,
+    viewedHeadings: Array.from(viewedHeadingsSet),
     topKeywords: keywords,
     watchedBuckets: new Set(),
     rewindCount: 0,
@@ -332,39 +434,90 @@ function setupArticleObserver(urlInfo: ReturnType<typeof sanitizeUrl>, startTime
     playbackRates: [],
   };
 
-  const handleScroll = () => {
-    if (!currentSession) return;
-    const scrollY = window.scrollY || window.pageYOffset;
-    const viewportHeight = window.innerHeight;
-    const documentHeight = Math.max(
-      document.body.scrollHeight,
-      document.documentElement.scrollHeight
+  // IntersectionObserver requiring elements stay visible in viewport for >= 2 seconds
+  if (typeof IntersectionObserver !== "undefined") {
+    articleObserver = new IntersectionObserver(
+      (entries) => {
+        const now = Date.now();
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            observedElementsMap.set(entry.target, now);
+          } else {
+            const enteredAt = observedElementsMap.get(entry.target);
+            if (enteredAt && hasMinimumViewportDwell(enteredAt, now, 2000)) {
+              markElementViewed(entry.target);
+            }
+            observedElementsMap.delete(entry.target);
+          }
+        });
+      },
+      { threshold: 0.5 }
     );
-    const scrolledRatio = Math.min(1.0, (scrollY + viewportHeight) / (documentHeight || 1));
-    const estimatedViewed = Math.round(scrolledRatio * currentSession.totalWords);
-    currentSession.viewedWords = Math.max(currentSession.viewedWords, estimatedViewed);
-  };
 
-  window.addEventListener("scroll", handleScroll, { passive: true });
+    const targets = root.querySelectorAll("h1, h2, h3, p");
+    targets.forEach((el) => articleObserver?.observe(el));
+  }
 }
 
-function setupVideoObserver(urlInfo: ReturnType<typeof sanitizeUrl>, startTimeIso: string): void {
+function markElementViewed(el: Element): void {
+  if (!currentSession) return;
+  const tag = el.tagName.toUpperCase();
+
+  if (tag === "P") {
+    if (!countedParagraphs.has(el)) {
+      countedParagraphs.add(el);
+      const text = (el.textContent || "").trim();
+      const count = text.split(/\s+/).filter(Boolean).length;
+      if (count > 0) {
+        currentSession.viewedWords = Math.min(
+          currentSession.totalWords,
+          currentSession.viewedWords + count
+        );
+      }
+    }
+  } else if (tag === "H1" || tag === "H2" || tag === "H3") {
+    const text = (el.textContent || "").trim();
+    if (text.length >= 3) {
+      const lower = text.toLowerCase();
+      let alreadyPresent = false;
+      for (const existing of viewedHeadingsSet) {
+        if (existing.toLowerCase() === lower) {
+          alreadyPresent = true;
+          break;
+        }
+      }
+      if (!alreadyPresent && viewedHeadingsSet.size < 6) {
+        viewedHeadingsSet.add(text);
+        currentSession.viewedHeadings = extractHeadings(Array.from(viewedHeadingsSet), 6);
+      }
+    }
+  }
+}
+
+function setupVideoObserver(
+  urlInfo: ReturnType<typeof sanitizeUrl>,
+  startTimeIso: string,
+  warm?: WarmSessionState | null,
+  overrideTitle?: string
+): void {
   const video = document.querySelector("video");
   if (!video) {
     setTimeout(() => {
       const retryVideo = document.querySelector("video");
-      if (retryVideo) attachVideoListeners(retryVideo, urlInfo, startTimeIso);
+      if (retryVideo) attachVideoListeners(retryVideo, urlInfo, startTimeIso, warm, overrideTitle);
     }, 1500);
     return;
   }
 
-  attachVideoListeners(video, urlInfo, startTimeIso);
+  attachVideoListeners(video, urlInfo, startTimeIso, warm, overrideTitle);
 }
 
 function attachVideoListeners(
   video: HTMLVideoElement,
   urlInfo: ReturnType<typeof sanitizeUrl>,
-  startTimeIso: string
+  startTimeIso: string,
+  warm?: WarmSessionState | null,
+  overrideTitle?: string
 ): void {
   let channelName = "";
   const channelEl = document.querySelector("#channel-name, .ytd-channel-name, [itemprop='author']");
@@ -372,13 +525,13 @@ function attachVideoListeners(
     channelName = ((channelEl as HTMLElement).innerText || "").trim();
   }
 
-  const chapterTitles: string[] = [];
+  const chapterTitles: string[] = warm?.viewedHeadings ? [...warm.viewedHeadings] : [];
   document.querySelectorAll(".ytp-chapter-title-content, .ytd-macro-markers-list-item-renderer").forEach((el) => {
     const text = ((el as HTMLElement).innerText || "").trim();
     if (text) chapterTitles.push(text);
   });
 
-  const cleanTitle = cleanPageTitle(document.title || "Video");
+  const cleanTitle = overrideTitle || cleanPageTitle(document.title || "Video");
   const metaDescription = extractYouTubeDescription(channelName, chapterTitles);
   const headings = extractHeadings(chapterTitles, 6);
   const keywords = extractKeywords(cleanTitle, {
@@ -388,22 +541,22 @@ function attachVideoListeners(
   });
 
   const session: ContentSession = {
-    clientEventId: generateUUID(),
+    clientEventId: warm?.clientEventId || generateUUID(),
     sourceUrl: urlInfo.sanitizedUrl,
     sourceDomain: urlInfo.domain,
     pageTitle: cleanTitle,
     metaDescription,
     mediaType: "video",
-    startedAt: startTimeIso,
+    startedAt: warm?.startedAt || startTimeIso,
     totalWords: 0,
     viewedWords: 0,
     viewedHeadings: headings,
     topKeywords: keywords,
     videoDurationSec: Math.round(video.duration || 0),
     channelName: channelName || undefined,
-    watchedBuckets: new Set<number>(),
-    rewindCount: 0,
-    pauseCount: 0,
+    watchedBuckets: new Set<number>(warm?.watchedBuckets || []),
+    rewindCount: warm?.rewindCount || 0,
+    pauseCount: warm?.pauseCount || 0,
     lastVideoTime: video.currentTime,
     playbackRates: [video.playbackRate || 1.0],
   };
@@ -426,6 +579,16 @@ function attachVideoListeners(
 
     if (video.duration && !currentSession.videoDurationSec) {
       currentSession.videoDurationSec = Math.round(video.duration);
+    }
+
+    // Capture watched chapters during active playback
+    const currentChapterEl = document.querySelector(".ytp-chapter-title-content");
+    if (currentChapterEl && currentChapterEl.textContent) {
+      currentSession.viewedHeadings = appendWatchedChapter(
+        currentSession.viewedHeadings,
+        currentChapterEl.textContent,
+        6
+      );
     }
   });
 
@@ -452,10 +615,28 @@ function tick(): void {
 
   let isActive = isTabVisible;
 
+  // Genuine Article Viewport Reading: check elements continuously visible for >= 2s
+  if (articleObserver && observedElementsMap.size > 0) {
+    observedElementsMap.forEach((enteredAt, el) => {
+      if (hasMinimumViewportDwell(enteredAt, now, 2000)) {
+        markElementViewed(el);
+      }
+    });
+  }
+
+  // Genuine YouTube Lecture Guardrail: Muted tab pauses UNLESS captions are visible
   if (currentSession?.mediaType === "video") {
     const video = document.querySelector("video");
-    const isPlaying = video && !video.paused && !video.ended;
-    isActive = isTabVisible && !!isPlaying;
+    const isPlaying = !!(video && !video.paused && !video.ended);
+    const isMuted = !!(video && (video.muted || video.volume === 0));
+
+    // Check for active visible YouTube captions
+    const captionEl = document.querySelector(".ytp-caption-window-container, .caption-window");
+    const hasCaptions = !!(captionEl && (captionEl.textContent || "").trim().length > 0);
+    const isAdShowing = !!document.querySelector(".ad-showing, .ad-interrupting");
+
+    const canTrackVideo = shouldTrackVideoDwell(isPlaying, isMuted, hasCaptions) && !isAdShowing;
+    isActive = isTabVisible && canTrackVideo;
   }
 
   if (isActive && isStudyModeOn && deltaSec > 0 && deltaSec <= 3) {
@@ -466,12 +647,13 @@ function tick(): void {
 setInterval(tick, 1000);
 
 // -------------------------------------------------------------
-// PAYLOAD BUILDER & FLUSH
+// PAYLOAD BUILDER & INCREMENTAL FLUSH
 // -------------------------------------------------------------
 function buildSessionPayload(_reason: string) {
   if (!currentSession) return null;
 
-  const dwellToSend = Math.max(15, activeDwellSeconds);
+  const unsyncedDwell = calculateUnsyncedDwell(activeDwellSeconds, syncedDwellSeconds);
+  const dwellToSend = Math.max(15, unsyncedDwell);
 
   let coveragePct = 0.0;
   if (currentSession.mediaType === "video") {
@@ -482,8 +664,9 @@ function buildSessionPayload(_reason: string) {
   } else {
     coveragePct = calculateArticleCoverage(
       currentSession.viewedWords,
-      dwellToSend,
-      currentSession.totalWords
+      activeDwellSeconds,
+      currentSession.totalWords,
+      220
     );
   }
 
@@ -527,11 +710,8 @@ function flushSession(reason: string, force: boolean = false): boolean {
     return false;
   }
 
-  if (activeDwellSeconds < 15 && !force) {
-    return false;
-  }
-
-  if (activeDwellSeconds === 0) {
+  const unsyncedDwell = calculateUnsyncedDwell(activeDwellSeconds, syncedDwellSeconds);
+  if (!shouldFlushDelta(unsyncedDwell, 15, force)) {
     return false;
   }
 
@@ -544,9 +724,9 @@ function flushSession(reason: string, force: boolean = false): boolean {
       reason,
       event: eventPayload,
     });
-    activeDwellSeconds = 0;
+    syncedDwellSeconds = activeDwellSeconds;
     currentSession.clientEventId = generateUUID();
-    currentSession.startedAt = new Date().toISOString();
+    persistWarmSession();
     return true;
   } catch {
     return false;
@@ -556,23 +736,60 @@ function flushSession(reason: string, force: boolean = false): boolean {
 // 30-second local checkpoint
 setInterval(() => {
   flushSession("30s_checkpoint");
+  persistWarmSession();
 }, 30000);
 
+// TAB SWITCH / VISIBILITY CHANGE: PAUSE & RESUME (Never reset active dwell or state)
 document.addEventListener("visibilitychange", () => {
   isTabVisible = document.visibilityState === "visible";
+  lastHeartbeatTime = Date.now();
   if (!isTabVisible) {
-    flushSession("tab_hidden");
+    // PAUSE: preserve activeDwellSeconds and persist warm session state
+    persistWarmSession();
+  } else {
+    // RESUME: continue counting seamlessly
+    lastHeartbeatTime = Date.now();
   }
 });
 
 window.addEventListener("beforeunload", () => {
   flushSession("page_leave");
+  persistWarmSession();
 });
 
+// YouTube SPA Navigation with Title Debouncing
+let ytNavTimeout: ReturnType<typeof setTimeout> | null = null;
 window.addEventListener("yt-navigate-finish", () => {
+  if (ytNavTimeout) clearTimeout(ytNavTimeout);
   flushSession("yt_navigate_finish");
   currentSession = null;
-  initContentTracker(true);
+
+  // Debounce and poll for watch-page title DOM update (up to 1.5s)
+  const previousTitle = cleanPageTitle(document.title || "");
+  const startTime = Date.now();
+
+  const checkTitle = () => {
+    const metaTitleEl = document.querySelector(
+      "ytd-watch-metadata h1 yt-formatted-string, #title h1 yt-formatted-string, h1.ytd-watch-metadata"
+    );
+    const candidate = metaTitleEl?.textContent?.trim() || "";
+    const docTitle = cleanPageTitle(document.title || "");
+    const titleToUse = candidate || docTitle;
+
+    if (titleToUse && titleToUse !== previousTitle && !titleToUse.toLowerCase().includes("youtube")) {
+      initContentTracker(true, cleanPageTitle(titleToUse));
+      return;
+    }
+
+    if (Date.now() - startTime >= 1500) {
+      initContentTracker(true, cleanPageTitle(document.title || "Video"));
+      return;
+    }
+
+    ytNavTimeout = setTimeout(checkTitle, 150);
+  };
+
+  ytNavTimeout = setTimeout(checkTitle, 150);
 });
 
 // Run tracker

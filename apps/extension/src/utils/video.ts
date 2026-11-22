@@ -56,3 +56,56 @@ export function isRewindSeek(
 export function getBucketIndex(currentTimeSec: number, bucketSizeSec: number = BUCKET_SIZE_SEC): number {
   return Math.floor(Math.max(0, currentTimeSec) / bucketSizeSec);
 }
+
+/**
+ * Determines if video dwell should accumulate.
+ * Guardrail: Muted playback is paused UNLESS active captions/subtitles are visible.
+ */
+export function shouldTrackVideoDwell(
+  isPlaying: boolean,
+  isMutedOrSilent: boolean,
+  hasVisibleCaptions: boolean
+): boolean {
+  if (!isPlaying) {
+    return false;
+  }
+  if (isMutedOrSilent && !hasVisibleCaptions) {
+    return false;
+  }
+  return true;
+}
+
+/**
+ * Cleans chapter text by stripping leading timestamps like "02:15 ", "(10:30)", etc.
+ */
+export function extractChapterTitle(rawText: string): string {
+  if (!rawText) return "";
+  let clean = rawText.replace(/\s+/g, " ").trim();
+  // Strip leading timestamps like 02:15, 01:23:45, [10:30], (05:00)
+  clean = clean.replace(/^[[({]?\d{1,2}:\d{2}(?::\d{2})?[\])}]?\s*[-–—:]?\s*/, "").trim();
+  return clean.slice(0, 100);
+}
+
+/**
+ * Appends a watched chapter name to viewed_headings up to the maximum cap (default 6).
+ * Deduplicates case-insensitively.
+ */
+export function appendWatchedChapter(
+  existingHeadings: string[],
+  newChapter: string,
+  maxHeadings: number = 6
+): string[] {
+  const clean = extractChapterTitle(newChapter);
+  if (!clean || clean.length < 3) {
+    return existingHeadings;
+  }
+  const lower = clean.toLowerCase();
+  const exists = existingHeadings.some((h) => h.toLowerCase() === lower);
+  if (exists) {
+    return existingHeadings;
+  }
+  if (existingHeadings.length >= maxHeadings) {
+    return existingHeadings;
+  }
+  return [...existingHeadings, clean];
+}
