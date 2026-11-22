@@ -31,6 +31,9 @@ def test_compute_ece_and_metrics() -> None:
     assert metrics["test_auc"] is not None and metrics["test_auc"] > 0.9
     assert metrics["test_acc"] is not None and metrics["test_acc"] == 1.0
     assert metrics["test_f1"] is not None and metrics["test_f1"] == 1.0
+    assert metrics["test_f1_macro"] is not None and metrics["test_f1_macro"] == 1.0
+    assert metrics["test_confusion_matrix"] == {"tn": 5, "fp": 0, "fn": 0, "tp": 5}
+    assert metrics["test_classification_threshold"] == 0.50
 
     ece, bin_data = compute_ece(y_true, y_pred, n_bins=5)
     assert 0.0 <= ece <= 1.0
@@ -79,8 +82,13 @@ def test_train_and_evaluate_fast_dev_cycle(tmp_path: Path) -> None:
 
     assert "response_auc" in eval_metrics
     assert "response_acc" in eval_metrics
+    assert "response_f1_macro" in eval_metrics
+    assert "response_confusion_matrix" in eval_metrics
     assert "response_ece" in eval_metrics
     assert "reliability_diagram" in eval_metrics
+    assert "concept_mastery_ece" in eval_metrics
+    assert "concept_mastery_brier" in eval_metrics
+    assert eval_metrics["threshold_selection_protocol"] == "fixed_0.50_zero_test_tuning"
     assert "retention_auc" in eval_metrics
     assert "retention_buckets" in eval_metrics
 

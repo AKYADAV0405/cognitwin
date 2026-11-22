@@ -1,15 +1,30 @@
 {
   "dkt": {
     "42": {
-      "response_auc": 0.7148924955040354,
-      "response_acc": 0.7623668023910595,
-      "response_precision": 0.7698037790697675,
-      "response_recall": 0.975929978118162,
-      "response_f1": 0.8606977807120004,
-      "response_log_loss": 0.5042579102841972,
-      "response_brier": 0.1657891658612724,
+      "response_auc": 0.7149,
+      "response_acc": 0.7624,
+      "response_precision": 0.7698,
+      "response_recall": 0.9759,
+      "response_f1": 0.8607,
+      "response_f1_macro": 0.5264,
+      "response_f1_weighted": 0.695,
+      "response_precision_cls0": 0.6093,
+      "response_recall_cls0": 0.114,
+      "response_f1_cls0": 0.192,
+      "response_precision_cls1": 0.7698,
+      "response_recall_cls1": 0.9759,
+      "response_f1_cls1": 0.8607,
+      "response_log_loss": 0.5043,
+      "response_brier": 0.1658,
+      "response_confusion_matrix": {
+        "tn": 326,
+        "fp": 2534,
+        "fn": 209,
+        "tp": 8474
+      },
+      "response_classification_threshold": 0.5,
       "response_count": 11543,
-      "response_ece": 0.010349749194308549,
+      "response_ece": 0.0103,
       "reliability_diagram": [
         {
           "bin_index": 0,
@@ -92,8 +107,10 @@
           "confidence": 0.9276
         }
       ],
+      "threshold_selection_protocol": "fixed_0.50_zero_test_tuning",
       "retention_auc": null,
       "retention_f1": null,
+      "retention_f1_macro": null,
       "retention_brier": null,
       "retention_buckets": {},
       "model_name": "dkt",
@@ -103,15 +120,30 @@
   },
   "sakt": {
     "42": {
-      "response_auc": 0.6660511376220232,
-      "response_acc": 0.7544832365936065,
-      "response_precision": 0.7562428809252607,
-      "response_recall": 0.9940112864217436,
-      "response_f1": 0.8589769108280255,
-      "response_log_loss": 0.5290375082172633,
-      "response_brier": 0.17482250532062354,
+      "response_auc": 0.6661,
+      "response_acc": 0.7545,
+      "response_precision": 0.7562,
+      "response_recall": 0.994,
+      "response_f1": 0.859,
+      "response_f1_macro": 0.4556,
+      "response_f1_weighted": 0.6591,
+      "response_precision_cls0": 0.6,
+      "response_recall_cls0": 0.0273,
+      "response_f1_cls0": 0.0522,
+      "response_precision_cls1": 0.7562,
+      "response_recall_cls1": 0.994,
+      "response_f1_cls1": 0.859,
+      "response_log_loss": 0.529,
+      "response_brier": 0.1748,
+      "response_confusion_matrix": {
+        "tn": 78,
+        "fp": 2782,
+        "fn": 52,
+        "tp": 8631
+      },
+      "response_classification_threshold": 0.5,
       "response_count": 11543,
-      "response_ece": 0.017207386097523432,
+      "response_ece": 0.0172,
       "reliability_diagram": [
         {
           "bin_index": 0,
@@ -194,8 +226,10 @@
           "confidence": 0.9093
         }
       ],
+      "threshold_selection_protocol": "fixed_0.50_zero_test_tuning",
       "retention_auc": null,
       "retention_f1": null,
+      "retention_f1_macro": null,
       "retention_brier": null,
       "retention_buckets": {},
       "model_name": "sakt",
@@ -205,15 +239,30 @@
   },
   "gkt": {
     "42": {
-      "response_auc": 0.7348085520376202,
-      "response_acc": 0.7696439400502469,
-      "response_precision": 0.7948893675347563,
-      "response_recall": 0.9350454911896809,
-      "response_f1": 0.8592898343652432,
-      "response_log_loss": 0.49359323304754615,
-      "response_brier": 0.16138811091240068,
+      "response_auc": 0.7348,
+      "response_acc": 0.7696,
+      "response_precision": 0.7949,
+      "response_recall": 0.935,
+      "response_f1": 0.8593,
+      "response_f1_macro": 0.6123,
+      "response_f1_weighted": 0.7369,
+      "response_precision_cls0": 0.5756,
+      "response_recall_cls0": 0.2675,
+      "response_f1_cls0": 0.3652,
+      "response_precision_cls1": 0.7949,
+      "response_recall_cls1": 0.935,
+      "response_f1_cls1": 0.8593,
+      "response_log_loss": 0.4936,
+      "response_brier": 0.1614,
+      "response_confusion_matrix": {
+        "tn": 765,
+        "fp": 2095,
+        "fn": 564,
+        "tp": 8119
+      },
+      "response_classification_threshold": 0.5,
       "response_count": 11543,
-      "response_ece": 0.01051667832624953,
+      "response_ece": 0.0105,
       "reliability_diagram": [
         {
           "bin_index": 0,
@@ -296,8 +345,10 @@
           "confidence": 0.9314
         }
       ],
+      "threshold_selection_protocol": "fixed_0.50_zero_test_tuning",
       "retention_auc": null,
       "retention_f1": null,
+      "retention_f1_macro": null,
       "retention_brier": null,
       "retention_buckets": {},
       "model_name": "gkt",
@@ -307,15 +358,30 @@
   },
   "tpa_gkt_full": {
     "42": {
-      "response_auc": 0.7393366106426109,
-      "response_acc": 0.7679112882266309,
-      "response_precision": 0.797404398652665,
-      "response_recall": 0.9269837613727974,
-      "response_f1": 0.8573254513500559,
-      "response_log_loss": 0.49165531192225437,
-      "response_brier": 0.16052641547731494,
+      "response_auc": 0.7393,
+      "response_acc": 0.7679,
+      "response_precision": 0.7974,
+      "response_recall": 0.927,
+      "response_f1": 0.8573,
+      "response_f1_macro": 0.6178,
+      "response_f1_weighted": 0.7386,
+      "response_precision_cls0": 0.5625,
+      "response_recall_cls0": 0.285,
+      "response_f1_cls0": 0.3783,
+      "response_precision_cls1": 0.7974,
+      "response_recall_cls1": 0.927,
+      "response_f1_cls1": 0.8573,
+      "response_log_loss": 0.4917,
+      "response_brier": 0.1605,
+      "response_confusion_matrix": {
+        "tn": 815,
+        "fp": 2045,
+        "fn": 634,
+        "tp": 8049
+      },
+      "response_classification_threshold": 0.5,
       "response_count": 11543,
-      "response_ece": 0.017052763303138124,
+      "response_ece": 0.0171,
       "reliability_diagram": [
         {
           "bin_index": 0,
@@ -398,45 +464,178 @@
           "confidence": 0.9362
         }
       ],
-      "retention_auc": 0.7584834729748644,
-      "retention_acc": 0.7991803278688525,
-      "retention_precision": 0.8225686711210096,
-      "retention_recall": 0.9527085124677558,
-      "retention_f1": 0.8828685258964143,
-      "retention_log_loss": 0.43834012247824194,
-      "retention_brier": 0.14042175488022646,
+      "threshold_selection_protocol": "fixed_0.50_zero_test_tuning",
+      "concept_mastery_ece": 0.0257,
+      "concept_mastery_brier": 0.1626,
+      "concept_mastery_reliability_diagram": [
+        {
+          "bin_index": 0,
+          "bin_lower": 0.0,
+          "bin_upper": 0.1,
+          "count": 0,
+          "accuracy": 0.0,
+          "confidence": 0.0
+        },
+        {
+          "bin_index": 1,
+          "bin_lower": 0.1,
+          "bin_upper": 0.2,
+          "count": 0,
+          "accuracy": 0.0,
+          "confidence": 0.0
+        },
+        {
+          "bin_index": 2,
+          "bin_lower": 0.2,
+          "bin_upper": 0.3,
+          "count": 184,
+          "accuracy": 0.337,
+          "confidence": 0.271
+        },
+        {
+          "bin_index": 3,
+          "bin_lower": 0.3,
+          "bin_upper": 0.4,
+          "count": 673,
+          "accuracy": 0.4056,
+          "confidence": 0.355
+        },
+        {
+          "bin_index": 4,
+          "bin_lower": 0.4,
+          "bin_upper": 0.5,
+          "count": 927,
+          "accuracy": 0.5232,
+          "confidence": 0.4508
+        },
+        {
+          "bin_index": 5,
+          "bin_lower": 0.5,
+          "bin_upper": 0.6,
+          "count": 1034,
+          "accuracy": 0.617,
+          "confidence": 0.5503
+        },
+        {
+          "bin_index": 6,
+          "bin_lower": 0.6,
+          "bin_upper": 0.7,
+          "count": 1358,
+          "accuracy": 0.6937,
+          "confidence": 0.6533
+        },
+        {
+          "bin_index": 7,
+          "bin_lower": 0.7,
+          "bin_upper": 0.8,
+          "count": 2072,
+          "accuracy": 0.7765,
+          "confidence": 0.7536
+        },
+        {
+          "bin_index": 8,
+          "bin_lower": 0.8,
+          "bin_upper": 0.9,
+          "count": 3203,
+          "accuracy": 0.852,
+          "confidence": 0.8544
+        },
+        {
+          "bin_index": 9,
+          "bin_lower": 0.9,
+          "bin_upper": 1.0,
+          "count": 2092,
+          "accuracy": 0.9297,
+          "confidence": 0.9277
+        }
+      ],
+      "concept_mastery_methodological_note": "Concept mastery head outputs [h_{u,t}; g_c] evaluated against next-step interaction outcome as an operational proxy for unobserved cognitive mastery.",
+      "retention_auc": 0.7585,
+      "retention_acc": 0.7992,
+      "retention_precision": 0.8226,
+      "retention_recall": 0.9527,
+      "retention_f1": 0.8829,
+      "retention_f1_macro": 0.5898,
+      "retention_f1_weighted": 0.7623,
+      "retention_precision_cls0": 0.5299,
+      "retention_recall_cls0": 0.206,
+      "retention_f1_cls0": 0.2967,
+      "retention_precision_cls1": 0.8226,
+      "retention_recall_cls1": 0.9527,
+      "retention_f1_cls1": 0.8829,
+      "retention_log_loss": 0.4383,
+      "retention_brier": 0.1404,
+      "retention_confusion_matrix": {
+        "tn": 62,
+        "fp": 239,
+        "fn": 55,
+        "tp": 1108
+      },
+      "retention_classification_threshold": 0.5,
       "retention_count": 1464,
       "retention_buckets": {
         "<1h": {
           "bucket_idx": 0,
           "name": "<1h",
-          "auc": 0.7296747967479675,
-          "f1": 0.821173104434907,
-          "brier": 0.17862711691065694,
+          "auc": 0.7297,
+          "acc": 0.7283,
+          "f1": 0.8212,
+          "f1_macro": 0.6278,
+          "brier": 0.1786,
+          "confusion_matrix": {
+            "tn": 48,
+            "fp": 84,
+            "fn": 41,
+            "tp": 287
+          },
           "count": 460
         },
         "1h-24h": {
           "bucket_idx": 1,
           "name": "1h-24h",
-          "auc": 0.7395959595959596,
-          "f1": 0.9116809116809117,
-          "brier": 0.12045435650374277,
+          "auc": 0.7396,
+          "acc": 0.841,
+          "f1": 0.9117,
+          "f1_macro": 0.5584,
+          "brier": 0.1205,
+          "confusion_matrix": {
+            "tn": 4,
+            "fp": 26,
+            "fn": 5,
+            "tp": 160
+          },
           "count": 195
         },
         "1d-7d": {
           "bucket_idx": 2,
           "name": "1d-7d",
-          "auc": 0.7409363745498199,
-          "f1": 0.9090909090909091,
-          "brier": 0.12247629082931581,
+          "auc": 0.7409,
+          "acc": 0.8361,
+          "f1": 0.9091,
+          "f1_macro": 0.5379,
+          "brier": 0.1225,
+          "confusion_matrix": {
+            "tn": 7,
+            "fp": 63,
+            "fn": 7,
+            "tp": 350
+          },
           "count": 427
         },
         ">7d": {
           "bucket_idx": 3,
           "name": ">7d",
-          "auc": 0.7794601102004908,
-          "f1": 0.9014492753623189,
-          "brier": 0.12466753838586814,
+          "auc": 0.7795,
+          "acc": 0.822,
+          "f1": 0.9014,
+          "f1_macro": 0.4913,
+          "brier": 0.1247,
+          "confusion_matrix": {
+            "tn": 3,
+            "fp": 66,
+            "fn": 2,
+            "tp": 311
+          },
           "count": 382
         }
       },
@@ -447,15 +646,30 @@
   },
   "ablation_wo_hier": {
     "42": {
-      "response_auc": 0.7409215741071091,
-      "response_acc": 0.7682578185913541,
-      "response_precision": 0.796486379786814,
-      "response_recall": 0.9294022803178625,
-      "response_f1": 0.8578262024980069,
-      "response_log_loss": 0.490858291907826,
-      "response_brier": 0.16021884587468765,
+      "response_auc": 0.7409,
+      "response_acc": 0.7683,
+      "response_precision": 0.7965,
+      "response_recall": 0.9294,
+      "response_f1": 0.8578,
+      "response_f1_macro": 0.6158,
+      "response_f1_weighted": 0.7379,
+      "response_precision_cls0": 0.5656,
+      "response_recall_cls0": 0.279,
+      "response_f1_cls0": 0.3737,
+      "response_precision_cls1": 0.7965,
+      "response_recall_cls1": 0.9294,
+      "response_f1_cls1": 0.8578,
+      "response_log_loss": 0.4909,
+      "response_brier": 0.1602,
+      "response_confusion_matrix": {
+        "tn": 798,
+        "fp": 2062,
+        "fn": 613,
+        "tp": 8070
+      },
+      "response_classification_threshold": 0.5,
       "response_count": 11543,
-      "response_ece": 0.018297854785457337,
+      "response_ece": 0.0183,
       "reliability_diagram": [
         {
           "bin_index": 0,
@@ -538,45 +752,178 @@
           "confidence": 0.9357
         }
       ],
-      "retention_auc": 0.7609401736258903,
-      "retention_acc": 0.7984972677595629,
-      "retention_precision": 0.8214814814814815,
-      "retention_recall": 0.9535683576956148,
-      "retention_f1": 0.8826104257859132,
-      "retention_log_loss": 0.4369544423794367,
-      "retention_brier": 0.14001940757080403,
+      "threshold_selection_protocol": "fixed_0.50_zero_test_tuning",
+      "concept_mastery_ece": 0.0214,
+      "concept_mastery_brier": 0.162,
+      "concept_mastery_reliability_diagram": [
+        {
+          "bin_index": 0,
+          "bin_lower": 0.0,
+          "bin_upper": 0.1,
+          "count": 0,
+          "accuracy": 0.0,
+          "confidence": 0.0
+        },
+        {
+          "bin_index": 1,
+          "bin_lower": 0.1,
+          "bin_upper": 0.2,
+          "count": 0,
+          "accuracy": 0.0,
+          "confidence": 0.0
+        },
+        {
+          "bin_index": 2,
+          "bin_lower": 0.2,
+          "bin_upper": 0.3,
+          "count": 172,
+          "accuracy": 0.3605,
+          "confidence": 0.2705
+        },
+        {
+          "bin_index": 3,
+          "bin_lower": 0.3,
+          "bin_upper": 0.4,
+          "count": 625,
+          "accuracy": 0.3952,
+          "confidence": 0.3543
+        },
+        {
+          "bin_index": 4,
+          "bin_lower": 0.4,
+          "bin_upper": 0.5,
+          "count": 927,
+          "accuracy": 0.5102,
+          "confidence": 0.4505
+        },
+        {
+          "bin_index": 5,
+          "bin_lower": 0.5,
+          "bin_upper": 0.6,
+          "count": 1029,
+          "accuracy": 0.6045,
+          "confidence": 0.5518
+        },
+        {
+          "bin_index": 6,
+          "bin_lower": 0.6,
+          "bin_upper": 0.7,
+          "count": 1293,
+          "accuracy": 0.6922,
+          "confidence": 0.6533
+        },
+        {
+          "bin_index": 7,
+          "bin_lower": 0.7,
+          "bin_upper": 0.8,
+          "count": 2017,
+          "accuracy": 0.769,
+          "confidence": 0.7531
+        },
+        {
+          "bin_index": 8,
+          "bin_lower": 0.8,
+          "bin_upper": 0.9,
+          "count": 3258,
+          "accuracy": 0.8533,
+          "confidence": 0.8549
+        },
+        {
+          "bin_index": 9,
+          "bin_lower": 0.9,
+          "bin_upper": 1.0,
+          "count": 2222,
+          "accuracy": 0.9239,
+          "confidence": 0.928
+        }
+      ],
+      "concept_mastery_methodological_note": "Concept mastery head outputs [h_{u,t}; g_c] evaluated against next-step interaction outcome as an operational proxy for unobserved cognitive mastery.",
+      "retention_auc": 0.7609,
+      "retention_acc": 0.7985,
+      "retention_precision": 0.8215,
+      "retention_recall": 0.9536,
+      "retention_f1": 0.8826,
+      "retention_f1_macro": 0.5859,
+      "retention_f1_weighted": 0.7606,
+      "retention_precision_cls0": 0.5263,
+      "retention_recall_cls0": 0.1993,
+      "retention_f1_cls0": 0.2892,
+      "retention_precision_cls1": 0.8215,
+      "retention_recall_cls1": 0.9536,
+      "retention_f1_cls1": 0.8826,
+      "retention_log_loss": 0.437,
+      "retention_brier": 0.14,
+      "retention_confusion_matrix": {
+        "tn": 60,
+        "fp": 241,
+        "fn": 54,
+        "tp": 1109
+      },
+      "retention_classification_threshold": 0.5,
       "retention_count": 1464,
       "retention_buckets": {
         "<1h": {
           "bucket_idx": 0,
           "name": "<1h",
-          "auc": 0.7319151884700665,
-          "f1": 0.8238636363636364,
-          "brier": 0.1778304915643551,
+          "auc": 0.7319,
+          "acc": 0.7304,
+          "f1": 0.8239,
+          "f1_macro": 0.6249,
+          "brier": 0.1778,
+          "confusion_matrix": {
+            "tn": 46,
+            "fp": 86,
+            "fn": 38,
+            "tp": 290
+          },
           "count": 460
         },
         "1h-24h": {
           "bucket_idx": 1,
           "name": "1h-24h",
-          "auc": 0.75010101010101,
-          "f1": 0.9065155807365439,
-          "brier": 0.11959712333864511,
+          "auc": 0.7501,
+          "acc": 0.8308,
+          "f1": 0.9065,
+          "f1_macro": 0.5073,
+          "brier": 0.1196,
+          "confusion_matrix": {
+            "tn": 2,
+            "fp": 28,
+            "fn": 5,
+            "tp": 160
+          },
           "count": 195
         },
         "1d-7d": {
           "bucket_idx": 2,
           "name": "1d-7d",
-          "auc": 0.7438175270108043,
-          "f1": 0.9086161879895561,
-          "brier": 0.12238192367139206,
+          "auc": 0.7439,
+          "acc": 0.8361,
+          "f1": 0.9086,
+          "f1_macro": 0.5566,
+          "brier": 0.1224,
+          "confusion_matrix": {
+            "tn": 9,
+            "fp": 61,
+            "fn": 9,
+            "tp": 348
+          },
           "count": 427
         },
         ">7d": {
           "bucket_idx": 3,
           "name": ">7d",
-          "auc": 0.7820530629254063,
-          "f1": 0.9014492753623189,
-          "brier": 0.12462792174171079,
+          "auc": 0.7821,
+          "acc": 0.822,
+          "f1": 0.9014,
+          "f1_macro": 0.4913,
+          "brier": 0.1246,
+          "confusion_matrix": {
+            "tn": 3,
+            "fp": 66,
+            "fn": 2,
+            "tp": 311
+          },
           "count": 382
         }
       },
@@ -587,15 +934,30 @@
   },
   "ablation_wo_trans": {
     "42": {
-      "response_auc": 0.7395387579137435,
-      "response_acc": 0.7683444511825349,
-      "response_precision": 0.7979176995537928,
-      "response_recall": 0.9267534262351722,
-      "response_f1": 0.8575234441602728,
-      "response_log_loss": 0.49159633225854377,
-      "response_brier": 0.16050774433585802,
+      "response_auc": 0.7395,
+      "response_acc": 0.7683,
+      "response_precision": 0.7979,
+      "response_recall": 0.9268,
+      "response_f1": 0.8575,
+      "response_f1_macro": 0.6191,
+      "response_f1_weighted": 0.7394,
+      "response_precision_cls0": 0.5638,
+      "response_recall_cls0": 0.2874,
+      "response_f1_cls0": 0.3807,
+      "response_precision_cls1": 0.7979,
+      "response_recall_cls1": 0.9268,
+      "response_f1_cls1": 0.8575,
+      "response_log_loss": 0.4916,
+      "response_brier": 0.1605,
+      "response_confusion_matrix": {
+        "tn": 822,
+        "fp": 2038,
+        "fn": 636,
+        "tp": 8047
+      },
+      "response_classification_threshold": 0.5,
       "response_count": 11543,
-      "response_ece": 0.01731411977681979,
+      "response_ece": 0.0173,
       "reliability_diagram": [
         {
           "bin_index": 0,
@@ -678,45 +1040,178 @@
           "confidence": 0.9363
         }
       ],
-      "retention_auc": 0.7581178245058746,
-      "retention_acc": 0.7978142076502732,
-      "retention_precision": 0.8223048327137547,
-      "retention_recall": 0.9509888220120378,
-      "retention_f1": 0.8819776714513556,
-      "retention_log_loss": 0.4383829825674162,
-      "retention_brier": 0.14043315508608253,
+      "threshold_selection_protocol": "fixed_0.50_zero_test_tuning",
+      "concept_mastery_ece": 0.0263,
+      "concept_mastery_brier": 0.1627,
+      "concept_mastery_reliability_diagram": [
+        {
+          "bin_index": 0,
+          "bin_lower": 0.0,
+          "bin_upper": 0.1,
+          "count": 0,
+          "accuracy": 0.0,
+          "confidence": 0.0
+        },
+        {
+          "bin_index": 1,
+          "bin_lower": 0.1,
+          "bin_upper": 0.2,
+          "count": 0,
+          "accuracy": 0.0,
+          "confidence": 0.0
+        },
+        {
+          "bin_index": 2,
+          "bin_lower": 0.2,
+          "bin_upper": 0.3,
+          "count": 203,
+          "accuracy": 0.335,
+          "confidence": 0.2711
+        },
+        {
+          "bin_index": 3,
+          "bin_lower": 0.3,
+          "bin_upper": 0.4,
+          "count": 685,
+          "accuracy": 0.4102,
+          "confidence": 0.3554
+        },
+        {
+          "bin_index": 4,
+          "bin_lower": 0.4,
+          "bin_upper": 0.5,
+          "count": 920,
+          "accuracy": 0.525,
+          "confidence": 0.4508
+        },
+        {
+          "bin_index": 5,
+          "bin_lower": 0.5,
+          "bin_upper": 0.6,
+          "count": 1027,
+          "accuracy": 0.6222,
+          "confidence": 0.5502
+        },
+        {
+          "bin_index": 6,
+          "bin_lower": 0.6,
+          "bin_upper": 0.7,
+          "count": 1372,
+          "accuracy": 0.6931,
+          "confidence": 0.654
+        },
+        {
+          "bin_index": 7,
+          "bin_lower": 0.7,
+          "bin_upper": 0.8,
+          "count": 2049,
+          "accuracy": 0.7765,
+          "confidence": 0.7543
+        },
+        {
+          "bin_index": 8,
+          "bin_lower": 0.8,
+          "bin_upper": 0.9,
+          "count": 3205,
+          "accuracy": 0.8527,
+          "confidence": 0.8544
+        },
+        {
+          "bin_index": 9,
+          "bin_lower": 0.9,
+          "bin_upper": 1.0,
+          "count": 2082,
+          "accuracy": 0.9304,
+          "confidence": 0.9275
+        }
+      ],
+      "concept_mastery_methodological_note": "Concept mastery head outputs [h_{u,t}; g_c] evaluated against next-step interaction outcome as an operational proxy for unobserved cognitive mastery.",
+      "retention_auc": 0.7581,
+      "retention_acc": 0.7978,
+      "retention_precision": 0.8223,
+      "retention_recall": 0.951,
+      "retention_f1": 0.882,
+      "retention_f1_macro": 0.5886,
+      "retention_f1_weighted": 0.7613,
+      "retention_precision_cls0": 0.521,
+      "retention_recall_cls0": 0.206,
+      "retention_f1_cls0": 0.2952,
+      "retention_precision_cls1": 0.8223,
+      "retention_recall_cls1": 0.951,
+      "retention_f1_cls1": 0.882,
+      "retention_log_loss": 0.4384,
+      "retention_brier": 0.1404,
+      "retention_confusion_matrix": {
+        "tn": 62,
+        "fp": 239,
+        "fn": 57,
+        "tp": 1106
+      },
+      "retention_classification_threshold": 0.5,
       "retention_count": 1464,
       "retention_buckets": {
         "<1h": {
           "bucket_idx": 0,
           "name": "<1h",
-          "auc": 0.7293514412416852,
-          "f1": 0.8177905308464849,
-          "brier": 0.1786713334191408,
+          "auc": 0.7294,
+          "acc": 0.7239,
+          "f1": 0.8178,
+          "f1_macro": 0.6241,
+          "brier": 0.1787,
+          "confusion_matrix": {
+            "tn": 48,
+            "fp": 84,
+            "fn": 43,
+            "tp": 285
+          },
           "count": 460
         },
         "1h-24h": {
           "bucket_idx": 1,
           "name": "1h-24h",
-          "auc": 0.7367676767676768,
-          "f1": 0.9116809116809117,
-          "brier": 0.12056973900396603,
+          "auc": 0.7368,
+          "acc": 0.841,
+          "f1": 0.9117,
+          "f1_macro": 0.5584,
+          "brier": 0.1206,
+          "confusion_matrix": {
+            "tn": 4,
+            "fp": 26,
+            "fn": 5,
+            "tp": 160
+          },
           "count": 195
         },
         "1d-7d": {
           "bucket_idx": 2,
           "name": "1d-7d",
-          "auc": 0.7420568227290916,
-          "f1": 0.9090909090909091,
-          "brier": 0.12239637838974078,
+          "auc": 0.7421,
+          "acc": 0.8361,
+          "f1": 0.9091,
+          "f1_macro": 0.5379,
+          "brier": 0.1224,
+          "confusion_matrix": {
+            "tn": 7,
+            "fp": 63,
+            "fn": 7,
+            "tp": 350
+          },
           "count": 427
         },
         ">7d": {
           "bucket_idx": 3,
           "name": ">7d",
-          "auc": 0.7785803583831087,
-          "f1": 0.9014492753623189,
-          "brier": 0.1246884109817471,
+          "auc": 0.7786,
+          "acc": 0.822,
+          "f1": 0.9014,
+          "f1_macro": 0.4913,
+          "brier": 0.1247,
+          "confusion_matrix": {
+            "tn": 3,
+            "fp": 66,
+            "fn": 2,
+            "tp": 311
+          },
           "count": 382
         }
       },
@@ -727,15 +1222,30 @@
   },
   "ablation_wo_time_decay": {
     "42": {
-      "response_auc": 0.7394591674592826,
-      "response_acc": 0.7679979208178117,
-      "response_precision": 0.7976603549122633,
-      "response_recall": 0.9266382586663595,
-      "response_f1": 0.8573255194459244,
-      "response_log_loss": 0.4915377725243644,
-      "response_brier": 0.16048069042075547,
+      "response_auc": 0.7395,
+      "response_acc": 0.768,
+      "response_precision": 0.7977,
+      "response_recall": 0.9266,
+      "response_f1": 0.8573,
+      "response_f1_macro": 0.6184,
+      "response_f1_weighted": 0.7389,
+      "response_precision_cls0": 0.5625,
+      "response_recall_cls0": 0.2864,
+      "response_f1_cls0": 0.3795,
+      "response_precision_cls1": 0.7977,
+      "response_recall_cls1": 0.9266,
+      "response_f1_cls1": 0.8573,
+      "response_log_loss": 0.4915,
+      "response_brier": 0.1605,
+      "response_confusion_matrix": {
+        "tn": 819,
+        "fp": 2041,
+        "fn": 637,
+        "tp": 8046
+      },
+      "response_classification_threshold": 0.5,
       "response_count": 11543,
-      "response_ece": 0.016612644375976468,
+      "response_ece": 0.0166,
       "reliability_diagram": [
         {
           "bin_index": 0,
@@ -818,45 +1328,178 @@
           "confidence": 0.9362
         }
       ],
-      "retention_auc": 0.7584377669162408,
-      "retention_acc": 0.7991803278688525,
-      "retention_precision": 0.8220904373610082,
-      "retention_recall": 0.9535683576956148,
-      "retention_f1": 0.8829617834394905,
-      "retention_log_loss": 0.4382858019296738,
-      "retention_brier": 0.14038983632368868,
+      "threshold_selection_protocol": "fixed_0.50_zero_test_tuning",
+      "concept_mastery_ece": 0.0257,
+      "concept_mastery_brier": 0.1626,
+      "concept_mastery_reliability_diagram": [
+        {
+          "bin_index": 0,
+          "bin_lower": 0.0,
+          "bin_upper": 0.1,
+          "count": 0,
+          "accuracy": 0.0,
+          "confidence": 0.0
+        },
+        {
+          "bin_index": 1,
+          "bin_lower": 0.1,
+          "bin_upper": 0.2,
+          "count": 0,
+          "accuracy": 0.0,
+          "confidence": 0.0
+        },
+        {
+          "bin_index": 2,
+          "bin_lower": 0.2,
+          "bin_upper": 0.3,
+          "count": 187,
+          "accuracy": 0.3316,
+          "confidence": 0.2711
+        },
+        {
+          "bin_index": 3,
+          "bin_lower": 0.3,
+          "bin_upper": 0.4,
+          "count": 670,
+          "accuracy": 0.4104,
+          "confidence": 0.355
+        },
+        {
+          "bin_index": 4,
+          "bin_lower": 0.4,
+          "bin_upper": 0.5,
+          "count": 918,
+          "accuracy": 0.5174,
+          "confidence": 0.4507
+        },
+        {
+          "bin_index": 5,
+          "bin_lower": 0.5,
+          "bin_upper": 0.6,
+          "count": 1043,
+          "accuracy": 0.6213,
+          "confidence": 0.5502
+        },
+        {
+          "bin_index": 6,
+          "bin_lower": 0.6,
+          "bin_upper": 0.7,
+          "count": 1362,
+          "accuracy": 0.6931,
+          "confidence": 0.6537
+        },
+        {
+          "bin_index": 7,
+          "bin_lower": 0.7,
+          "bin_upper": 0.8,
+          "count": 2065,
+          "accuracy": 0.7768,
+          "confidence": 0.7538
+        },
+        {
+          "bin_index": 8,
+          "bin_lower": 0.8,
+          "bin_upper": 0.9,
+          "count": 3203,
+          "accuracy": 0.8517,
+          "confidence": 0.8542
+        },
+        {
+          "bin_index": 9,
+          "bin_lower": 0.9,
+          "bin_upper": 1.0,
+          "count": 2095,
+          "accuracy": 0.9294,
+          "confidence": 0.9275
+        }
+      ],
+      "concept_mastery_methodological_note": "Concept mastery head outputs [h_{u,t}; g_c] evaluated against next-step interaction outcome as an operational proxy for unobserved cognitive mastery.",
+      "retention_auc": 0.7584,
+      "retention_acc": 0.7992,
+      "retention_precision": 0.8221,
+      "retention_recall": 0.9536,
+      "retention_f1": 0.883,
+      "retention_f1_macro": 0.5881,
+      "retention_f1_weighted": 0.7617,
+      "retention_precision_cls0": 0.5304,
+      "retention_recall_cls0": 0.2027,
+      "retention_f1_cls0": 0.2933,
+      "retention_precision_cls1": 0.8221,
+      "retention_recall_cls1": 0.9536,
+      "retention_f1_cls1": 0.883,
+      "retention_log_loss": 0.4383,
+      "retention_brier": 0.1404,
+      "retention_confusion_matrix": {
+        "tn": 61,
+        "fp": 240,
+        "fn": 54,
+        "tp": 1109
+      },
+      "retention_classification_threshold": 0.5,
       "retention_count": 1464,
       "retention_buckets": {
         "<1h": {
           "bucket_idx": 0,
           "name": "<1h",
-          "auc": 0.7291435698447895,
-          "f1": 0.8216833095577746,
-          "brier": 0.17860702068925813,
+          "auc": 0.7291,
+          "acc": 0.7283,
+          "f1": 0.8217,
+          "f1_macro": 0.6255,
+          "brier": 0.1786,
+          "confusion_matrix": {
+            "tn": 47,
+            "fp": 85,
+            "fn": 40,
+            "tp": 288
+          },
           "count": 460
         },
         "1h-24h": {
           "bucket_idx": 1,
           "name": "1h-24h",
-          "auc": 0.7410101010101011,
-          "f1": 0.9116809116809117,
-          "brier": 0.12043364665472325,
+          "auc": 0.741,
+          "acc": 0.841,
+          "f1": 0.9117,
+          "f1_macro": 0.5584,
+          "brier": 0.1204,
+          "confusion_matrix": {
+            "tn": 4,
+            "fp": 26,
+            "fn": 5,
+            "tp": 160
+          },
           "count": 195
         },
         "1d-7d": {
           "bucket_idx": 2,
           "name": "1d-7d",
-          "auc": 0.7410564225690277,
-          "f1": 0.9090909090909091,
-          "brier": 0.122402150786852,
+          "auc": 0.7411,
+          "acc": 0.8361,
+          "f1": 0.9091,
+          "f1_macro": 0.5379,
+          "brier": 0.1224,
+          "confusion_matrix": {
+            "tn": 7,
+            "fp": 63,
+            "fn": 7,
+            "tp": 350
+          },
           "count": 427
         },
         ">7d": {
           "bucket_idx": 3,
           "name": ">7d",
-          "auc": 0.7791359911098763,
-          "f1": 0.9014492753623189,
-          "brier": 0.1246628570082844,
+          "auc": 0.7791,
+          "acc": 0.822,
+          "f1": 0.9014,
+          "f1_macro": 0.4913,
+          "brier": 0.1247,
+          "confusion_matrix": {
+            "tn": 3,
+            "fp": 66,
+            "fn": 2,
+            "tp": 311
+          },
           "count": 382
         }
       },
@@ -867,15 +1510,30 @@
   },
   "ablation_wo_attempt_hint": {
     "42": {
-      "response_auc": 0.7344463178190002,
-      "response_acc": 0.7685177163648965,
-      "response_precision": 0.7938214879264835,
-      "response_recall": 0.9351606587584936,
-      "response_f1": 0.8587140439932318,
-      "response_log_loss": 0.4948391790281702,
-      "response_brier": 0.16165731220714416,
+      "response_auc": 0.7344,
+      "response_acc": 0.7685,
+      "response_precision": 0.7938,
+      "response_recall": 0.9352,
+      "response_f1": 0.8587,
+      "response_f1_macro": 0.6093,
+      "response_f1_weighted": 0.7351,
+      "response_precision_cls0": 0.5715,
+      "response_recall_cls0": 0.2626,
+      "response_f1_cls0": 0.3598,
+      "response_precision_cls1": 0.7938,
+      "response_recall_cls1": 0.9352,
+      "response_f1_cls1": 0.8587,
+      "response_log_loss": 0.4948,
+      "response_brier": 0.1617,
+      "response_confusion_matrix": {
+        "tn": 751,
+        "fp": 2109,
+        "fn": 563,
+        "tp": 8120
+      },
+      "response_classification_threshold": 0.5,
       "response_count": 11543,
-      "response_ece": 0.01596539749317813,
+      "response_ece": 0.016,
       "reliability_diagram": [
         {
           "bin_index": 0,
@@ -958,45 +1616,178 @@
           "confidence": 0.937
         }
       ],
-      "retention_auc": 0.7560753350111267,
-      "retention_acc": 0.7923497267759563,
-      "retention_precision": 0.8110065170166546,
-      "retention_recall": 0.9630266552020637,
-      "retention_f1": 0.8805031446540881,
-      "retention_log_loss": 0.4397061118219163,
-      "retention_brier": 0.1410877959922409,
+      "threshold_selection_protocol": "fixed_0.50_zero_test_tuning",
+      "concept_mastery_ece": 0.0226,
+      "concept_mastery_brier": 0.1635,
+      "concept_mastery_reliability_diagram": [
+        {
+          "bin_index": 0,
+          "bin_lower": 0.0,
+          "bin_upper": 0.1,
+          "count": 0,
+          "accuracy": 0.0,
+          "confidence": 0.0
+        },
+        {
+          "bin_index": 1,
+          "bin_lower": 0.1,
+          "bin_upper": 0.2,
+          "count": 0,
+          "accuracy": 0.0,
+          "confidence": 0.0
+        },
+        {
+          "bin_index": 2,
+          "bin_lower": 0.2,
+          "bin_upper": 0.3,
+          "count": 77,
+          "accuracy": 0.3636,
+          "confidence": 0.2771
+        },
+        {
+          "bin_index": 3,
+          "bin_lower": 0.3,
+          "bin_upper": 0.4,
+          "count": 470,
+          "accuracy": 0.3915,
+          "confidence": 0.3613
+        },
+        {
+          "bin_index": 4,
+          "bin_lower": 0.4,
+          "bin_upper": 0.5,
+          "count": 1075,
+          "accuracy": 0.494,
+          "confidence": 0.4523
+        },
+        {
+          "bin_index": 5,
+          "bin_lower": 0.5,
+          "bin_upper": 0.6,
+          "count": 1259,
+          "accuracy": 0.6068,
+          "confidence": 0.5521
+        },
+        {
+          "bin_index": 6,
+          "bin_lower": 0.6,
+          "bin_upper": 0.7,
+          "count": 1415,
+          "accuracy": 0.7032,
+          "confidence": 0.6531
+        },
+        {
+          "bin_index": 7,
+          "bin_lower": 0.7,
+          "bin_upper": 0.8,
+          "count": 2096,
+          "accuracy": 0.7758,
+          "confidence": 0.7526
+        },
+        {
+          "bin_index": 8,
+          "bin_lower": 0.8,
+          "bin_upper": 0.9,
+          "count": 3063,
+          "accuracy": 0.8554,
+          "confidence": 0.8542
+        },
+        {
+          "bin_index": 9,
+          "bin_lower": 0.9,
+          "bin_upper": 1.0,
+          "count": 2088,
+          "accuracy": 0.9267,
+          "confidence": 0.9283
+        }
+      ],
+      "concept_mastery_methodological_note": "Concept mastery head outputs [h_{u,t}; g_c] evaluated against next-step interaction outcome as an operational proxy for unobserved cognitive mastery.",
+      "retention_auc": 0.7561,
+      "retention_acc": 0.7923,
+      "retention_precision": 0.811,
+      "retention_recall": 0.963,
+      "retention_f1": 0.8805,
+      "retention_f1_macro": 0.5444,
+      "retention_f1_weighted": 0.7423,
+      "retention_precision_cls0": 0.4819,
+      "retention_recall_cls0": 0.1329,
+      "retention_f1_cls0": 0.2083,
+      "retention_precision_cls1": 0.811,
+      "retention_recall_cls1": 0.963,
+      "retention_f1_cls1": 0.8805,
+      "retention_log_loss": 0.4397,
+      "retention_brier": 0.1411,
+      "retention_confusion_matrix": {
+        "tn": 40,
+        "fp": 261,
+        "fn": 43,
+        "tp": 1120
+      },
+      "retention_classification_threshold": 0.5,
       "retention_count": 1464,
       "retention_buckets": {
         "<1h": {
           "bucket_idx": 0,
           "name": "<1h",
-          "auc": 0.7219835550628235,
-          "f1": 0.8178025034770514,
-          "brier": 0.1798348850808968,
+          "auc": 0.722,
+          "acc": 0.7152,
+          "f1": 0.8178,
+          "f1_macro": 0.583,
+          "brier": 0.1798,
+          "confusion_matrix": {
+            "tn": 35,
+            "fp": 97,
+            "fn": 34,
+            "tp": 294
+          },
           "count": 460
         },
         "1h-24h": {
           "bucket_idx": 1,
           "name": "1h-24h",
-          "auc": 0.7391919191919192,
-          "f1": 0.9101123595505618,
-          "brier": 0.12134405093451989,
+          "auc": 0.7392,
+          "acc": 0.8359,
+          "f1": 0.9101,
+          "f1_macro": 0.4845,
+          "brier": 0.1213,
+          "confusion_matrix": {
+            "tn": 1,
+            "fp": 29,
+            "fn": 3,
+            "tp": 162
+          },
           "count": 195
         },
         "1d-7d": {
           "bucket_idx": 2,
           "name": "1d-7d",
-          "auc": 0.744577831132453,
-          "f1": 0.9069767441860465,
-          "brier": 0.1218947143063281,
+          "auc": 0.7446,
+          "acc": 0.8314,
+          "f1": 0.907,
+          "f1_macro": 0.5035,
+          "brier": 0.1219,
+          "confusion_matrix": {
+            "tn": 4,
+            "fp": 66,
+            "fn": 6,
+            "tp": 351
+          },
           "count": 427
         },
         ">7d": {
           "bucket_idx": 3,
           "name": ">7d",
-          "auc": 0.7817289438347919,
-          "f1": 0.9007194244604316,
-          "brier": 0.12596165773401752,
+          "auc": 0.7817,
+          "acc": 0.8194,
+          "f1": 0.9007,
+          "f1_macro": 0.4504,
+          "brier": 0.126,
+          "confusion_matrix": {
+            "tn": 0,
+            "fp": 69,
+            "fn": 0,
+            "tp": 313
+          },
           "count": 382
         }
       },
@@ -1007,15 +1798,30 @@
   },
   "ablation_wo_graph": {
     "42": {
-      "response_auc": 0.7377152445619565,
-      "response_acc": 0.7678246556354501,
-      "response_precision": 0.7990435389060476,
-      "response_recall": 0.9236439018772313,
-      "response_f1": 0.8568376068376068,
-      "response_log_loss": 0.491834763649518,
-      "response_brier": 0.1608446584349078,
+      "response_auc": 0.7377,
+      "response_acc": 0.7678,
+      "response_precision": 0.799,
+      "response_recall": 0.9236,
+      "response_f1": 0.8568,
+      "response_f1_macro": 0.6215,
+      "response_f1_weighted": 0.7402,
+      "response_precision_cls0": 0.5598,
+      "response_recall_cls0": 0.2948,
+      "response_f1_cls0": 0.3862,
+      "response_precision_cls1": 0.799,
+      "response_recall_cls1": 0.9236,
+      "response_f1_cls1": 0.8568,
+      "response_log_loss": 0.4918,
+      "response_brier": 0.1608,
+      "response_confusion_matrix": {
+        "tn": 843,
+        "fp": 2017,
+        "fn": 663,
+        "tp": 8020
+      },
+      "response_classification_threshold": 0.5,
       "response_count": 11543,
-      "response_ece": 0.018696722574935463,
+      "response_ece": 0.0187,
       "reliability_diagram": [
         {
           "bin_index": 0,
@@ -1098,45 +1904,178 @@
           "confidence": 0.9362
         }
       ],
-      "retention_auc": 0.7563667111348528,
-      "retention_acc": 0.796448087431694,
-      "retention_precision": 0.8173147468818782,
-      "retention_recall": 0.9578675838349097,
-      "retention_f1": 0.8820269200316706,
-      "retention_log_loss": 0.43854763413326897,
-      "retention_brier": 0.14053808462712583,
+      "threshold_selection_protocol": "fixed_0.50_zero_test_tuning",
+      "concept_mastery_ece": 0.028,
+      "concept_mastery_brier": 0.1629,
+      "concept_mastery_reliability_diagram": [
+        {
+          "bin_index": 0,
+          "bin_lower": 0.0,
+          "bin_upper": 0.1,
+          "count": 0,
+          "accuracy": 0.0,
+          "confidence": 0.0
+        },
+        {
+          "bin_index": 1,
+          "bin_lower": 0.1,
+          "bin_upper": 0.2,
+          "count": 0,
+          "accuracy": 0.0,
+          "confidence": 0.0
+        },
+        {
+          "bin_index": 2,
+          "bin_lower": 0.2,
+          "bin_upper": 0.3,
+          "count": 211,
+          "accuracy": 0.3318,
+          "confidence": 0.2701
+        },
+        {
+          "bin_index": 3,
+          "bin_lower": 0.3,
+          "bin_upper": 0.4,
+          "count": 638,
+          "accuracy": 0.406,
+          "confidence": 0.3544
+        },
+        {
+          "bin_index": 4,
+          "bin_lower": 0.4,
+          "bin_upper": 0.5,
+          "count": 913,
+          "accuracy": 0.5345,
+          "confidence": 0.4509
+        },
+        {
+          "bin_index": 5,
+          "bin_lower": 0.5,
+          "bin_upper": 0.6,
+          "count": 985,
+          "accuracy": 0.597,
+          "confidence": 0.5519
+        },
+        {
+          "bin_index": 6,
+          "bin_lower": 0.6,
+          "bin_upper": 0.7,
+          "count": 1345,
+          "accuracy": 0.6937,
+          "confidence": 0.6532
+        },
+        {
+          "bin_index": 7,
+          "bin_lower": 0.7,
+          "bin_upper": 0.8,
+          "count": 2320,
+          "accuracy": 0.781,
+          "confidence": 0.7554
+        },
+        {
+          "bin_index": 8,
+          "bin_lower": 0.8,
+          "bin_upper": 0.9,
+          "count": 3429,
+          "accuracy": 0.8562,
+          "confidence": 0.8512
+        },
+        {
+          "bin_index": 9,
+          "bin_lower": 0.9,
+          "bin_upper": 1.0,
+          "count": 1702,
+          "accuracy": 0.9383,
+          "confidence": 0.9232
+        }
+      ],
+      "concept_mastery_methodological_note": "Concept mastery head outputs [h_{u,t}; g_c] evaluated against next-step interaction outcome as an operational proxy for unobserved cognitive mastery.",
+      "retention_auc": 0.7564,
+      "retention_acc": 0.7964,
+      "retention_precision": 0.8173,
+      "retention_recall": 0.9579,
+      "retention_f1": 0.882,
+      "retention_f1_macro": 0.5704,
+      "retention_f1_weighted": 0.7539,
+      "retention_precision_cls0": 0.5149,
+      "retention_recall_cls0": 0.1728,
+      "retention_f1_cls0": 0.2587,
+      "retention_precision_cls1": 0.8173,
+      "retention_recall_cls1": 0.9579,
+      "retention_f1_cls1": 0.882,
+      "retention_log_loss": 0.4385,
+      "retention_brier": 0.1405,
+      "retention_confusion_matrix": {
+        "tn": 52,
+        "fp": 249,
+        "fn": 49,
+        "tp": 1114
+      },
+      "retention_classification_threshold": 0.5,
       "retention_count": 1464,
       "retention_buckets": {
         "<1h": {
           "bucket_idx": 0,
           "name": "<1h",
-          "auc": 0.727919438285292,
-          "f1": 0.8233657858136301,
-          "brier": 0.1787777634243125,
+          "auc": 0.7279,
+          "acc": 0.7239,
+          "f1": 0.8234,
+          "f1_macro": 0.5958,
+          "brier": 0.1788,
+          "confusion_matrix": {
+            "tn": 37,
+            "fp": 95,
+            "fn": 32,
+            "tp": 296
+          },
           "count": 460
         },
         "1h-24h": {
           "bucket_idx": 1,
           "name": "1h-24h",
-          "auc": 0.7323232323232323,
-          "f1": 0.9090909090909091,
-          "brier": 0.122399357830019,
+          "auc": 0.7323,
+          "acc": 0.8359,
+          "f1": 0.9091,
+          "f1_macro": 0.5335,
+          "brier": 0.1224,
+          "confusion_matrix": {
+            "tn": 3,
+            "fp": 27,
+            "fn": 5,
+            "tp": 160
+          },
           "count": 195
         },
         "1d-7d": {
           "bucket_idx": 2,
           "name": "1d-7d",
-          "auc": 0.7418967587034814,
-          "f1": 0.9064935064935065,
-          "brier": 0.12311652265358501,
+          "auc": 0.7419,
+          "acc": 0.8314,
+          "f1": 0.9065,
+          "f1_macro": 0.5247,
+          "brier": 0.1231,
+          "confusion_matrix": {
+            "tn": 6,
+            "fp": 64,
+            "fn": 8,
+            "tp": 349
+          },
           "count": 427
         },
         ">7d": {
           "bucket_idx": 3,
           "name": ">7d",
-          "auc": 0.7746909292957356,
-          "f1": 0.9021897810218978,
-          "brier": 0.12322344180364914,
+          "auc": 0.7747,
+          "acc": 0.8246,
+          "f1": 0.9022,
+          "f1_macro": 0.527,
+          "brier": 0.1232,
+          "confusion_matrix": {
+            "tn": 6,
+            "fp": 63,
+            "fn": 4,
+            "tp": 309
+          },
           "count": 382
         }
       },
@@ -1147,15 +2086,30 @@
   },
   "ablation_gat": {
     "42": {
-      "response_auc": 0.7370187626493051,
-      "response_acc": 0.7674781252707269,
-      "response_precision": 0.7840166650885333,
-      "response_recall": 0.9535874697685132,
-      "response_f1": 0.8605279567657451,
-      "response_log_loss": 0.4940753444757206,
-      "response_brier": 0.16147413590150522,
+      "response_auc": 0.737,
+      "response_acc": 0.7675,
+      "response_precision": 0.784,
+      "response_recall": 0.9536,
+      "response_f1": 0.8605,
+      "response_f1_macro": 0.581,
+      "response_f1_weighted": 0.722,
+      "response_precision_cls0": 0.5896,
+      "response_recall_cls0": 0.2024,
+      "response_f1_cls0": 0.3014,
+      "response_precision_cls1": 0.784,
+      "response_recall_cls1": 0.9536,
+      "response_f1_cls1": 0.8605,
+      "response_log_loss": 0.4941,
+      "response_brier": 0.1615,
+      "response_confusion_matrix": {
+        "tn": 579,
+        "fp": 2281,
+        "fn": 403,
+        "tp": 8280
+      },
+      "response_classification_threshold": 0.5,
       "response_count": 11543,
-      "response_ece": 0.02541993092511559,
+      "response_ece": 0.0254,
       "reliability_diagram": [
         {
           "bin_index": 0,
@@ -1238,45 +2192,178 @@
           "confidence": 0.9336
         }
       ],
-      "retention_auc": 0.7519560764776625,
-      "retention_acc": 0.7943989071038251,
-      "retention_precision": 0.8100719424460432,
-      "retention_recall": 0.9681857265692175,
-      "retention_f1": 0.8820994907951429,
-      "retention_log_loss": 0.44437362818843495,
-      "retention_brier": 0.14253324160025693,
+      "threshold_selection_protocol": "fixed_0.50_zero_test_tuning",
+      "concept_mastery_ece": 0.0244,
+      "concept_mastery_brier": 0.1633,
+      "concept_mastery_reliability_diagram": [
+        {
+          "bin_index": 0,
+          "bin_lower": 0.0,
+          "bin_upper": 0.1,
+          "count": 0,
+          "accuracy": 0.0,
+          "confidence": 0.0
+        },
+        {
+          "bin_index": 1,
+          "bin_lower": 0.1,
+          "bin_upper": 0.2,
+          "count": 0,
+          "accuracy": 0.0,
+          "confidence": 0.0
+        },
+        {
+          "bin_index": 2,
+          "bin_lower": 0.2,
+          "bin_upper": 0.3,
+          "count": 0,
+          "accuracy": 0.0,
+          "confidence": 0.0
+        },
+        {
+          "bin_index": 3,
+          "bin_lower": 0.3,
+          "bin_upper": 0.4,
+          "count": 338,
+          "accuracy": 0.355,
+          "confidence": 0.3683
+        },
+        {
+          "bin_index": 4,
+          "bin_lower": 0.4,
+          "bin_upper": 0.5,
+          "count": 848,
+          "accuracy": 0.4528,
+          "confidence": 0.4511
+        },
+        {
+          "bin_index": 5,
+          "bin_lower": 0.5,
+          "bin_upper": 0.6,
+          "count": 968,
+          "accuracy": 0.5733,
+          "confidence": 0.5519
+        },
+        {
+          "bin_index": 6,
+          "bin_lower": 0.6,
+          "bin_upper": 0.7,
+          "count": 1108,
+          "accuracy": 0.6372,
+          "confidence": 0.6504
+        },
+        {
+          "bin_index": 7,
+          "bin_lower": 0.7,
+          "bin_upper": 0.8,
+          "count": 1776,
+          "accuracy": 0.7399,
+          "confidence": 0.7543
+        },
+        {
+          "bin_index": 8,
+          "bin_lower": 0.8,
+          "bin_upper": 0.9,
+          "count": 3133,
+          "accuracy": 0.8059,
+          "confidence": 0.8551
+        },
+        {
+          "bin_index": 9,
+          "bin_lower": 0.9,
+          "bin_upper": 1.0,
+          "count": 3372,
+          "accuracy": 0.9131,
+          "confidence": 0.9311
+        }
+      ],
+      "concept_mastery_methodological_note": "Concept mastery head outputs [h_{u,t}; g_c] evaluated against next-step interaction outcome as an operational proxy for unobserved cognitive mastery.",
+      "retention_auc": 0.752,
+      "retention_acc": 0.7944,
+      "retention_precision": 0.8101,
+      "retention_recall": 0.9682,
+      "retention_f1": 0.8821,
+      "retention_f1_macro": 0.5397,
+      "retention_f1_weighted": 0.7413,
+      "retention_precision_cls0": 0.5,
+      "retention_recall_cls0": 0.1229,
+      "retention_f1_cls0": 0.1973,
+      "retention_precision_cls1": 0.8101,
+      "retention_recall_cls1": 0.9682,
+      "retention_f1_cls1": 0.8821,
+      "retention_log_loss": 0.4444,
+      "retention_brier": 0.1425,
+      "retention_confusion_matrix": {
+        "tn": 37,
+        "fp": 264,
+        "fn": 37,
+        "tp": 1126
+      },
+      "retention_classification_threshold": 0.5,
       "retention_count": 1464,
       "retention_buckets": {
         "<1h": {
           "bucket_idx": 0,
           "name": "<1h",
-          "auc": 0.7237158167036217,
-          "f1": 0.8212824010914052,
-          "brier": 0.181157274758438,
+          "auc": 0.7237,
+          "acc": 0.7152,
+          "f1": 0.8213,
+          "f1_macro": 0.5604,
+          "brier": 0.1812,
+          "confusion_matrix": {
+            "tn": 28,
+            "fp": 104,
+            "fn": 27,
+            "tp": 301
+          },
           "count": 460
         },
         "1h-24h": {
           "bucket_idx": 1,
           "name": "1h-24h",
-          "auc": 0.7129292929292929,
-          "f1": 0.9187675070028011,
-          "brier": 0.12027297960177602,
+          "auc": 0.7129,
+          "acc": 0.8513,
+          "f1": 0.9188,
+          "f1_macro": 0.52,
+          "brier": 0.1203,
+          "confusion_matrix": {
+            "tn": 2,
+            "fp": 28,
+            "fn": 1,
+            "tp": 164
+          },
           "count": 195
         },
         "1d-7d": {
           "bucket_idx": 2,
           "name": "1d-7d",
-          "auc": 0.7390956382553022,
-          "f1": 0.9095607235142119,
-          "brier": 0.12387992280087555,
+          "auc": 0.7391,
+          "acc": 0.8361,
+          "f1": 0.9096,
+          "f1_macro": 0.5173,
+          "brier": 0.1239,
+          "confusion_matrix": {
+            "tn": 5,
+            "fp": 65,
+            "fn": 5,
+            "tp": 352
+          },
           "count": 427
         },
         ">7d": {
           "bucket_idx": 3,
           "name": ">7d",
-          "auc": 0.7737648747511229,
-          "f1": 0.8969521044992743,
-          "brier": 0.12823654778946192,
+          "auc": 0.7738,
+          "acc": 0.8141,
+          "f1": 0.897,
+          "f1_macro": 0.4751,
+          "brier": 0.1282,
+          "confusion_matrix": {
+            "tn": 2,
+            "fp": 67,
+            "fn": 4,
+            "tp": 309
+          },
           "count": 382
         }
       },

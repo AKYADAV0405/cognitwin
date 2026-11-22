@@ -1,5 +1,5 @@
-Bucket,Time Interval,TPA-GKT Retention AUC,Retention F1,Retention Brier,Sample Count
-<1h,Immediate practice (<= 1 hour),0.7297,0.8212,0.1786,460
-1h-24h,Same-day review (1 hour to 24 hours),0.7396,0.9117,0.1205,195
-1d-7d,Multi-day review (1 day to 7 days),0.7409,0.9091,0.1225,427
->7d,Long-term delay (> 7 days),0.7795,0.9014,0.1247,382
+Bucket,Time Interval,TPA-GKT Retention AUC,Retention Macro-F1,Retention Binary-F1,Retention Brier,Sample Count
+<1h,Immediate practice (<= 1 hour),0.7297,0.6278,0.8212,0.1786,460
+1h-24h,Same-day review (1 hour to 24 hours),0.7396,0.5584,0.9117,0.1205,195
+1d-7d,Multi-day review (1 day to 7 days),0.7409,0.5379,0.9091,0.1225,427
+>7d,Long-term delay (> 7 days),0.7795,0.4913,0.9014,0.1247,382

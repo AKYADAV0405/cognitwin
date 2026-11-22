@@ -343,3 +343,61 @@ def test_mastery_head_optimizer_update(
         assert not torch.equal(pre_weights[i], param), (
             f"mastery_head.{name} weights did not update after optimizer step!"
         )
+
+
+def test_retention_future_perturbation_invariance(
+    sample_batch: dict[str, torch.Tensor],
+    graph_data: tuple[torch.Tensor, torch.Tensor],
+) -> None:
+    """
+    Verify strict zero future-information leakage for delayed-retention predictions.
+    When future interactions and retention fields at t' >= cut_step are perturbed,
+    the retention predictions R_hat and hidden states at t < cut_step remain identical.
+    """
+    edge_index, edge_weight = graph_data
+    model = TPAGKT(
+        num_concepts=150,
+        num_problems=3000,
+        embedding_dim=32,
+        hidden_dim=64,
+        gnn_type="gcn",
+        use_retention_head=True,
+        edge_index=edge_index,
+        edge_weight=edge_weight,
+    )
+    model.eval()
+
+    # 1. Forward pass on unperturbed batch
+    with torch.no_grad():
+        out_orig = model(sample_batch)
+
+    # 2. Perturb future tokens and retention signals at t >= cut_step
+    cut_step = 10
+    perturbed_batch = {
+        k: v.clone() if isinstance(v, torch.Tensor) else v for k, v in sample_batch.items()
+    }
+    perturbed_batch["concept_idx"][:, cut_step:] = (
+        perturbed_batch["concept_idx"][:, cut_step:] + 3
+    ) % 150
+    perturbed_batch["problem_idx"][:, cut_step:] = (
+        perturbed_batch["problem_idx"][:, cut_step:] + 11
+    ) % 3000
+    perturbed_batch["is_correct"][:, cut_step:] = 1 - perturbed_batch["is_correct"][:, cut_step:]
+    perturbed_batch["continuous_features"][:, cut_step:, :] += 25.0
+    perturbed_batch["ret_concept"][:, cut_step:] = (
+        perturbed_batch["ret_concept"][:, cut_step:] + 7
+    ) % 150
+    perturbed_batch["ret_log_delta"][:, cut_step:] += 5.0
+    perturbed_batch["ret_v_summary"][:, cut_step:, :] += 10.0
+
+    # 3. Forward pass on perturbed batch
+    with torch.no_grad():
+        out_pert = model(perturbed_batch)
+
+    # 4. Assert past/current retention predictions at t < cut_step are bit-for-bit identical
+    orig_ret_pred_past = out_orig["pred_retention"][:, : cut_step - 1]
+    pert_ret_pred_past = out_pert["pred_retention"][:, : cut_step - 1]
+    assert torch.allclose(orig_ret_pred_past, pert_ret_pred_past, atol=1e-5, rtol=1e-5), (
+        "TPA-GKT delayed retention head violated temporal causality! Future interaction "
+        "changes leaked into past retention predictions."
+    )

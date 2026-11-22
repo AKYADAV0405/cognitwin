@@ -108,12 +108,19 @@ $$\mathbf{h}_t^u = \text{LSTMCell}\left( [\mathbf{e}_t, \mathbf{z}_{c_t}^{(L)}],
 where $\mathbf{z}_{c_t}^{(L)}$ is the graph-propagated node representation for target concept $c_t$.
 
 #### Stage 4: Multi-Task Prediction Heads
-1. **Correctness Head**:
-   $$\hat{y}_{t+1} = \sigma\left( \mathbf{w}_y^\top [\mathbf{h}_t^u, \mathbf{E}_{\text{concept}}(c_{t+1})] + b_y \right)$$
+1. **Next-Response Correctness Head**:
+   $$\hat{y}_{t+1} = \sigma\left( \mathbf{W}_y [\mathbf{h}_t^u \,\|\, \mathbf{g}_{c_{t+1}} \,\|\, \mathbf{e}_{q_{t+1}}] + b_y \right) \in [0, 1]$$
+   Evaluates student performance on specific problem $q_{t+1}$ mapped to knowledge component $c_{t+1}$.
+
 2. **Concept Node Mastery Head**:
-   $$\mathbf{\hat{m}}_t = \sigma\left( \mathbf{W}_m \mathbf{h}_t^u + \mathbf{b}_m \right) \in [0, 1]^{N_c}$$
-3. **Retention / Forgetting Head**:
-   $$\mathbf{\hat{R}}_t = \exp\left( -\frac{\Delta t}{\text{softplus}(\mathbf{W}_s \mathbf{h}_t^u + \mathbf{b}_s)} \right)$$
+   $$\hat{m}_{u,c,t} = \sigma\left( \mathbf{W}_m [\mathbf{h}_t^u \,\|\, \mathbf{g}_c] + b_m \right) \in [0, 1]$$
+   Computes estimated mastery for all $N_c$ concepts simultaneously.
+   *Supervision & Semantic Scope*: In non-synthetic educational telemetry (such as Junyi Academy), ground-truth mastery is an unobserved latent cognitive construct. During training, the Mastery Head is supervised via an auxiliary concept-level masked binary cross-entropy loss $\lambda_M \mathcal{L}_M$ ($\lambda_M = 0.2$) on $y_{t+1}$ whenever concept $c_{t+1} = c$. The resulting score represents an *operationally calibrated latent mastery belief* rather than an independently verified psychometric ground truth.
+
+3. **Time-Conditioned Delayed-Retention Head**:
+   $$\hat{R}_{u,c,t,\delta} = \sigma\left( \mathbf{W}_r [\mathbf{h}_t^u \,\|\, \mathbf{g}_c \,\|\, \log(1+\delta) \,\|\, \mathbf{v}_{u,c,t}] + b_r \right) \in [0, 1]$$
+   Predicts memory retention probability across continuous delay $\delta$, conditioned on historical practice summary $\mathbf{v}_{u,c,t}$ strictly prior to time $t$. Total training objective:
+   $$\mathcal{L} = \mathcal{L}_R + \lambda_M \mathcal{L}_M + \lambda_F \mathcal{L}_F$$
 
 #### 6 Ablation Flags
 1. `w/o A_hier`: Zeroes out curriculum hierarchy edges ($\alpha = 0$).

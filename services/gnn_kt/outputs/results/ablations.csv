@@ -1,8 +1,8 @@
-Variant,Description,Next-Response AUC,Next-Response F1,Retention AUC,Retention F1
-TPA-GKT (Ours),Full TPA-GKT (Dual Graph + Time Decay + Multi-Head),0.7393,0.8573,0.7585,0.8829
-w/o Curriculum Graph (A_hier),Uses empirical transition graph only (alpha = 0.0),0.7409,0.8578,0.7609,0.8826
-w/o Transition Graph (A_trans),Uses curriculum hierarchy graph only (alpha = 1.0),0.7395,0.8575,0.7581,0.8820
-w/o Time Decay (Delta t),Zeroes out temporal elapsed study gap signals,0.7395,0.8573,0.7584,0.8830
-w/o Attempt & Hint Features,Restricts multi-modal features to concept & correctness only,0.7344,0.8587,0.7561,0.8805
-w/o Graph Propagation (No GNN),Bypasses Stage 1 GNN message passing entirely,0.7377,0.8568,0.7564,0.8820
-GAT Backbone (vs GCN),Replaces spectral GCN convolution with multi-head GAT,0.7370,0.8605,0.7520,0.8821
+Variant,Description,Next-Response AUC,Next-Response Macro-F1,Next-Response Brier,Overall Retention AUC,Retention AUC (>7d)
+TPA-GKT (Ours),Full TPA-GKT (Dual Graph + Time Decay + Multi-Head),0.7393,0.6178,0.1605,0.7585,0.7795
+w/o Curriculum Graph (A_hier),Uses empirical transition graph only (alpha = 0.0),0.7409,0.6158,0.1602,0.7609,0.7821
+w/o Transition Graph (A_trans),Uses curriculum hierarchy graph only (alpha = 1.0),0.7395,0.6191,0.1605,0.7581,0.7786
+w/o Time Decay (Delta t),Zeroes out temporal elapsed study gap signals,0.7395,0.6184,0.1605,0.7584,0.7791
+w/o Attempt & Hint Features,Restricts multi-modal features to concept & correctness only,0.7344,0.6093,0.1617,0.7561,0.7817
+w/o Graph Propagation (No GNN),Bypasses Stage 1 GNN message passing entirely,0.7377,0.6215,0.1608,0.7564,0.7747
+GAT Backbone (vs GCN),Replaces spectral GCN convolution with multi-head GAT,0.7370,0.5810,0.1615,0.7520,0.7738

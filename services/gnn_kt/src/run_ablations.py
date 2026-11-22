@@ -277,24 +277,28 @@ def run_experiment_suite(
     baseline_keys = ["dkt", "sakt", "gkt", "tpa_gkt_full"]
     for b_key in baseline_keys:
         spec = EXPERIMENT_CONFIGS[b_key]
-        seed_results = all_runs[b_key].values()
+        seed_results = list(all_runs[b_key].values())
 
         resp_aucs = [r.get("response_auc") for r in seed_results]
         resp_accs = [r.get("response_acc") for r in seed_results]
-        resp_f1s = [r.get("response_f1") for r in seed_results]
+        resp_f1_macros = [r.get("response_f1_macro") for r in seed_results]
+        resp_f1_weighteds = [r.get("response_f1_weighted") for r in seed_results]
+        resp_f1_bins = [r.get("response_f1") for r in seed_results]
         resp_briers = [r.get("response_brier") for r in seed_results]
         ret_aucs = [r.get("retention_auc") for r in seed_results]
-        ret_f1s = [r.get("retention_f1") for r in seed_results]
+        ret_f1_macros = [r.get("retention_f1_macro") for r in seed_results]
 
         table3_rows.append(
             {
                 "Model": spec["label"],
                 "Next-Response AUC": format_mean_std(resp_aucs),
                 "Next-Response ACC": format_mean_std(resp_accs),
-                "Next-Response F1": format_mean_std(resp_f1s),
+                "Next-Response Macro-F1": format_mean_std(resp_f1_macros),
+                "Next-Response Weighted-F1": format_mean_std(resp_f1_weighteds),
+                "Next-Response Binary-F1": format_mean_std(resp_f1_bins),
                 "Next-Response Brier": format_mean_std(resp_briers),
                 "Retention AUC": format_mean_std(ret_aucs),
-                "Retention F1": format_mean_std(ret_f1s),
+                "Retention Macro-F1": format_mean_std(ret_f1_macros),
             }
         )
 
@@ -321,21 +325,25 @@ def run_experiment_suite(
     ]
     for a_key in ablation_keys:
         spec = EXPERIMENT_CONFIGS[a_key]
-        seed_results = all_runs[a_key].values()
+        seed_results = list(all_runs[a_key].values())
 
         resp_aucs = [r.get("response_auc") for r in seed_results]
-        resp_f1s = [r.get("response_f1") for r in seed_results]
+        resp_f1_macros = [r.get("response_f1_macro") for r in seed_results]
+        resp_briers = [r.get("response_brier") for r in seed_results]
         ret_aucs = [r.get("retention_auc") for r in seed_results]
-        ret_f1s = [r.get("retention_f1") for r in seed_results]
+        ret_gt7d_aucs = [
+            r.get("retention_buckets", {}).get(">7d", {}).get("auc") for r in seed_results
+        ]
 
         ablation_rows.append(
             {
                 "Variant": spec["label"],
                 "Description": spec["description"],
                 "Next-Response AUC": format_mean_std(resp_aucs),
-                "Next-Response F1": format_mean_std(resp_f1s),
-                "Retention AUC": format_mean_std(ret_aucs),
-                "Retention F1": format_mean_std(ret_f1s),
+                "Next-Response Macro-F1": format_mean_std(resp_f1_macros),
+                "Next-Response Brier": format_mean_std(resp_briers),
+                "Overall Retention AUC": format_mean_std(ret_aucs),
+                "Retention AUC (>7d)": format_mean_std(ret_gt7d_aucs),
             }
         )
 
@@ -362,14 +370,16 @@ def run_experiment_suite(
 
     for b_name in bucket_names:
         b_aucs: list[float | None] = []
-        b_f1s: list[float | None] = []
+        b_f1_macros: list[float | None] = []
+        b_f1_bins: list[float | None] = []
         b_briers: list[float | None] = []
         counts: list[int] = []
 
         for r in full_seed_results:
             b_dict = r.get("retention_buckets", {}).get(b_name, {})
             b_aucs.append(b_dict.get("auc"))
-            b_f1s.append(b_dict.get("f1"))
+            b_f1_macros.append(b_dict.get("f1_macro"))
+            b_f1_bins.append(b_dict.get("f1"))
             b_briers.append(b_dict.get("brier"))
             if "count" in b_dict:
                 counts.append(int(b_dict["count"]))
@@ -380,7 +390,8 @@ def run_experiment_suite(
                 "Bucket": b_name,
                 "Time Interval": bucket_descriptions.get(b_name, b_name),
                 "TPA-GKT Retention AUC": format_mean_std(b_aucs),
-                "Retention F1": format_mean_std(b_f1s),
+                "Retention Macro-F1": format_mean_std(b_f1_macros),
+                "Retention Binary-F1": format_mean_std(b_f1_bins),
                 "Retention Brier": format_mean_std(b_briers),
                 "Sample Count": avg_count,
             }

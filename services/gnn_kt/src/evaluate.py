@@ -31,10 +31,10 @@ from services.gnn_kt.src.train import build_model, get_device
 from sklearn.metrics import (
     accuracy_score,
     brier_score_loss,
+    confusion_matrix,
     f1_score,
     log_loss,
-    precision_score,
-    recall_score,
+    precision_recall_fscore_support,
     roc_auc_score,
 )
 from torch.utils.data import DataLoader
@@ -105,8 +105,13 @@ def compute_binary_metrics(
     y_true: np.ndarray,
     y_pred: np.ndarray,
     prefix: str = "",
-) -> dict[str, float | None]:
-    """Compute binary classification metrics with zero-division protection."""
+    threshold: float = 0.50,
+) -> dict[str, Any]:
+    """
+    Compute binary classification metrics with zero-division protection.
+    Includes confusion matrix (TN, FP, FN, TP), macro-F1, weighted-F1, binary-F1,
+    and per-class precision/recall/F1.
+    """
     if len(y_true) == 0:
         return {
             f"{prefix}auc": None,
@@ -114,8 +119,18 @@ def compute_binary_metrics(
             f"{prefix}precision": None,
             f"{prefix}recall": None,
             f"{prefix}f1": None,
+            f"{prefix}f1_macro": None,
+            f"{prefix}f1_weighted": None,
+            f"{prefix}precision_cls0": None,
+            f"{prefix}recall_cls0": None,
+            f"{prefix}f1_cls0": None,
+            f"{prefix}precision_cls1": None,
+            f"{prefix}recall_cls1": None,
+            f"{prefix}f1_cls1": None,
             f"{prefix}log_loss": None,
             f"{prefix}brier": None,
+            f"{prefix}confusion_matrix": {"tn": 0, "fp": 0, "fn": 0, "tp": 0},
+            f"{prefix}classification_threshold": threshold,
             f"{prefix}count": 0,
         }
 
@@ -129,11 +144,25 @@ def compute_binary_metrics(
     else:
         auc = 0.5
 
-    binary_pred = (y_pred >= 0.5).astype(int)
+    binary_pred = (y_pred >= threshold).astype(int)
     acc = float(accuracy_score(y_true, binary_pred))
-    prec = float(precision_score(y_true, binary_pred, zero_division=0))
-    rec = float(recall_score(y_true, binary_pred, zero_division=0))
-    f1 = float(f1_score(y_true, binary_pred, zero_division=0))
+
+    # 2x2 Confusion Matrix
+    cm = confusion_matrix(y_true, binary_pred, labels=[0, 1])
+    tn, fp, fn, tp = int(cm[0, 0]), int(cm[0, 1]), int(cm[1, 0]), int(cm[1, 1])
+
+    # Per-class metrics (class 0: incorrect, class 1: correct)
+    p_per_cls, r_per_cls, f1_per_cls, _ = precision_recall_fscore_support(
+        y_true, binary_pred, labels=[0, 1], zero_division=0
+    )
+    prec_cls0, prec_cls1 = float(p_per_cls[0]), float(p_per_cls[1])
+    rec_cls0, rec_cls1 = float(r_per_cls[0]), float(r_per_cls[1])
+    f1_cls0, f1_cls1 = float(f1_per_cls[0]), float(f1_per_cls[1])
+
+    # Global F1 variants
+    binary_f1 = float(f1_score(y_true, binary_pred, average="binary", zero_division=0))
+    macro_f1 = float(f1_score(y_true, binary_pred, average="macro", zero_division=0))
+    weighted_f1 = float(f1_score(y_true, binary_pred, average="weighted", zero_division=0))
 
     clipped_pred = np.clip(y_pred, 1e-7, 1.0 - 1e-7)
     try:
@@ -144,13 +173,23 @@ def compute_binary_metrics(
     brier = float(brier_score_loss(y_true, y_pred))
 
     return {
-        f"{prefix}auc": auc,
-        f"{prefix}acc": acc,
-        f"{prefix}precision": prec,
-        f"{prefix}recall": rec,
-        f"{prefix}f1": f1,
-        f"{prefix}log_loss": ll,
-        f"{prefix}brier": brier,
+        f"{prefix}auc": round(auc, 4),
+        f"{prefix}acc": round(acc, 4),
+        f"{prefix}precision": round(prec_cls1, 4),
+        f"{prefix}recall": round(rec_cls1, 4),
+        f"{prefix}f1": round(binary_f1, 4),
+        f"{prefix}f1_macro": round(macro_f1, 4),
+        f"{prefix}f1_weighted": round(weighted_f1, 4),
+        f"{prefix}precision_cls0": round(prec_cls0, 4),
+        f"{prefix}recall_cls0": round(rec_cls0, 4),
+        f"{prefix}f1_cls0": round(f1_cls0, 4),
+        f"{prefix}precision_cls1": round(prec_cls1, 4),
+        f"{prefix}recall_cls1": round(rec_cls1, 4),
+        f"{prefix}f1_cls1": round(f1_cls1, 4),
+        f"{prefix}log_loss": round(ll, 4),
+        f"{prefix}brier": round(brier, 4),
+        f"{prefix}confusion_matrix": {"tn": tn, "fp": fp, "fn": fn, "tp": tp},
+        f"{prefix}classification_threshold": threshold,
         f"{prefix}count": len(y_true),
     }
 
@@ -159,6 +198,7 @@ def evaluate_dataloader(
     model: nn.Module,
     dataloader: DataLoader,
     device: torch.device,
+    threshold: float = 0.50,
 ) -> dict[str, Any]:
     """Run evaluation over DataLoader and compute full paper-grade metric suite."""
     model.eval()
@@ -169,6 +209,8 @@ def evaluate_dataloader(
     y_ret_true: list[int] = []
     y_ret_pred: list[float] = []
     y_ret_bucket: list[int] = []
+
+    y_mastery_pred: list[float] = []
 
     with torch.no_grad():
         for batch in dataloader:
@@ -181,6 +223,11 @@ def evaluate_dataloader(
             if next_mask.any():
                 y_resp_true.extend(next_correct[next_mask].cpu().numpy().astype(int).tolist())
                 y_resp_pred.extend(pred_response[next_mask].cpu().numpy().astype(float).tolist())
+
+                if "pred_mastery" in out:
+                    y_mastery_pred.extend(
+                        out["pred_mastery"][next_mask].cpu().numpy().astype(float).tolist()
+                    )
 
             if "pred_retention" in out and "ret_mask" in batch:
                 ret_mask = batch["ret_mask"].to(device)
@@ -202,19 +249,35 @@ def evaluate_dataloader(
 
     # 1. Next-Response Metrics
     metrics: dict[str, Any] = compute_binary_metrics(
-        resp_true_arr, resp_pred_arr, prefix="response_"
+        resp_true_arr, resp_pred_arr, prefix="response_", threshold=threshold
     )
     ece_score, reliability_bins = compute_ece(resp_true_arr, resp_pred_arr, n_bins=10)
-    metrics["response_ece"] = ece_score
+    metrics["response_ece"] = round(ece_score, 4)
     metrics["reliability_diagram"] = reliability_bins
+    metrics["threshold_selection_protocol"] = "fixed_0.50_zero_test_tuning"
 
-    # 2. Delayed-Retention Metrics (Overall & Bucketed)
+    # 2. Concept Mastery Proxy Evaluation (Calibration against next-step correctness)
+    if len(y_mastery_pred) > 0:
+        mastery_pred_arr = np.array(y_mastery_pred, dtype=float)
+        mastery_ece, mastery_bins = compute_ece(resp_true_arr, mastery_pred_arr, n_bins=10)
+        mastery_brier = float(brier_score_loss(resp_true_arr, mastery_pred_arr))
+        metrics["concept_mastery_ece"] = round(mastery_ece, 4)
+        metrics["concept_mastery_brier"] = round(mastery_brier, 4)
+        metrics["concept_mastery_reliability_diagram"] = mastery_bins
+        metrics["concept_mastery_methodological_note"] = (
+            "Concept mastery head outputs [h_{u,t}; g_c] evaluated against next-step "
+            "interaction outcome as an operational proxy for unobserved cognitive mastery."
+        )
+
+    # 3. Delayed-Retention Metrics (Overall & Bucketed)
     if len(y_ret_true) > 0:
         ret_true_arr = np.array(y_ret_true, dtype=int)
         ret_pred_arr = np.array(y_ret_pred, dtype=float)
         ret_bucket_arr = np.array(y_ret_bucket, dtype=int)
 
-        ret_overall = compute_binary_metrics(ret_true_arr, ret_pred_arr, prefix="retention_")
+        ret_overall = compute_binary_metrics(
+            ret_true_arr, ret_pred_arr, prefix="retention_", threshold=threshold
+        )
         metrics.update(ret_overall)
 
         bucket_names = {
@@ -228,19 +291,23 @@ def evaluate_dataloader(
             b_mask = ret_bucket_arr == b_idx
             b_true = ret_true_arr[b_mask]
             b_pred = ret_pred_arr[b_mask]
-            b_res = compute_binary_metrics(b_true, b_pred, prefix="")
+            b_res = compute_binary_metrics(b_true, b_pred, prefix="", threshold=threshold)
             ret_bucket_metrics[b_name] = {
                 "bucket_idx": b_idx,
                 "name": b_name,
                 "auc": b_res["auc"],
+                "acc": b_res["acc"],
                 "f1": b_res["f1"],
+                "f1_macro": b_res["f1_macro"],
                 "brier": b_res["brier"],
+                "confusion_matrix": b_res["confusion_matrix"],
                 "count": b_res["count"],
             }
         metrics["retention_buckets"] = ret_bucket_metrics
     else:
         metrics["retention_auc"] = None
         metrics["retention_f1"] = None
+        metrics["retention_f1_macro"] = None
         metrics["retention_brier"] = None
         metrics["retention_buckets"] = {}
 
