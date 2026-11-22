@@ -13,216 +13,268 @@
   },
   "evaluation": {
     "total_pairs_evaluated": 1464,
-    "overall_retention_auc": 0.5389,
-    "overall_brier_score": 0.2143,
+    "overall_retention_auc": 0.7581,
+    "overall_brier_score": 0.1411,
     "strata_results": [
       {
         "Stratum": "Overall Test Retention",
         "Sample Count": 1464,
         "Positive Rate": 0.7944,
-        "Retention AUC": 0.5389,
-        "Brier Score": 0.2143,
-        "Macro-F1": 0.4592
+        "Retention AUC": 0.7581,
+        "AUC 95% CI": "[0.7291, 0.7853]",
+        "Brier Score": 0.1411,
+        "Macro-F1": 0.5977,
+        "Inference Reliability Notes": "Sufficient statistical power (N >= 50)"
       },
       {
         "Stratum": "Repeated Question Only",
         "Sample Count": 11,
         "Positive Rate": 0.9091,
-        "Retention AUC": 0.8,
-        "Brier Score": 0.2038,
-        "Macro-F1": 0.45
+        "Retention AUC": 0.3,
+        "AUC 95% CI": "[0.0000, 0.6000]",
+        "Brier Score": 0.1828,
+        "Macro-F1": 0.3889,
+        "Inference Reliability Notes": "Small sample size (N < 20); high variance, interpret with extreme caution"
       },
       {
         "Stratum": "Different Question Only",
         "Sample Count": 1453,
         "Positive Rate": 0.7935,
-        "Retention AUC": 0.5384,
-        "Brier Score": 0.2144,
-        "Macro-F1": 0.4592
+        "Retention AUC": 0.7605,
+        "AUC 95% CI": "[0.7317, 0.7915]",
+        "Brier Score": 0.1408,
+        "Macro-F1": 0.5996,
+        "Inference Reliability Notes": "Sufficient statistical power (N >= 50)"
       },
       {
         "Stratum": "Group A: Isolated Retention (0 Intervening)",
         "Sample Count": 394,
         "Positive Rate": 0.698,
-        "Retention AUC": 0.5473,
-        "Brier Score": 0.2274,
-        "Macro-F1": 0.4227
+        "Retention AUC": 0.7261,
+        "AUC 95% CI": "[0.6784, 0.7787]",
+        "Brier Score": 0.1864,
+        "Macro-F1": 0.6206,
+        "Inference Reliability Notes": "Sufficient statistical power (N >= 50)"
       },
       {
         "Stratum": "Group B: Related Interference (Graph Neighbors)",
         "Sample Count": 903,
         "Positive Rate": 0.845,
-        "Retention AUC": 0.5188,
-        "Brier Score": 0.2069,
-        "Macro-F1": 0.4627
+        "Retention AUC": 0.7412,
+        "AUC 95% CI": "[0.6910, 0.7859]",
+        "Brier Score": 0.1162,
+        "Macro-F1": 0.5584,
+        "Inference Reliability Notes": "Sufficient statistical power (N >= 50)"
       },
       {
         "Stratum": "Group C: Unrelated Interference (No Graph Edge)",
         "Sample Count": 167,
         "Positive Rate": 0.7485,
-        "Retention AUC": 0.5074,
-        "Brier Score": 0.2237,
-        "Macro-F1": 0.4924
+        "Retention AUC": 0.7312,
+        "AUC 95% CI": "[0.6475, 0.8154]",
+        "Brier Score": 0.1688,
+        "Macro-F1": 0.528,
+        "Inference Reliability Notes": "Sufficient statistical power (N >= 50)"
       },
       {
         "Stratum": "Delay <= 15 min (Quantized Immediate)",
         "Sample Count": 431,
         "Positive Rate": 0.7169,
-        "Retention AUC": 0.5332,
-        "Brier Score": 0.2272,
-        "Macro-F1": 0.4446
+        "Retention AUC": 0.7183,
+        "AUC 95% CI": "[0.6664, 0.7684]",
+        "Brier Score": 0.1813,
+        "Macro-F1": 0.63,
+        "Inference Reliability Notes": "Sufficient statistical power (N >= 50)"
       },
       {
         "Stratum": "Delay 15m - 60m (Within Session)",
         "Sample Count": 29,
         "Positive Rate": 0.6552,
-        "Retention AUC": 0.4842,
-        "Brier Score": 0.2346,
-        "Macro-F1": 0.4952
+        "Retention AUC": 0.8632,
+        "AUC 95% CI": "[0.6824, 0.9803]",
+        "Brier Score": 0.1593,
+        "Macro-F1": 0.6853,
+        "Inference Reliability Notes": "Moderate sample size (20 <= N < 50); wide confidence interval"
       },
       {
         "Stratum": "Delay 1h - 24h (Same-Day Review)",
         "Sample Count": 195,
         "Positive Rate": 0.8462,
-        "Retention AUC": 0.5954,
-        "Brier Score": 0.2053,
-        "Macro-F1": 0.4583
+        "Retention AUC": 0.7388,
+        "AUC 95% CI": "[0.6404, 0.8243]",
+        "Brier Score": 0.1218,
+        "Macro-F1": 0.5584,
+        "Inference Reliability Notes": "Sufficient statistical power (N >= 50)"
       },
       {
         "Stratum": "Delay 1d - 7d (Multi-Day Spaced Review)",
         "Sample Count": 427,
         "Positive Rate": 0.8361,
-        "Retention AUC": 0.5018,
-        "Brier Score": 0.2087,
-        "Macro-F1": 0.4547
+        "Retention AUC": 0.7465,
+        "AUC 95% CI": "[0.6811, 0.7992]",
+        "Brier Score": 0.1237,
+        "Macro-F1": 0.5529,
+        "Inference Reliability Notes": "Sufficient statistical power (N >= 50)"
       },
       {
         "Stratum": "Delay > 7 days (Long-Term Retention)",
         "Sample Count": 382,
         "Positive Rate": 0.8194,
-        "Retention AUC": 0.4941,
-        "Brier Score": 0.209,
-        "Macro-F1": 0.4504
+        "Retention AUC": 0.7755,
+        "AUC 95% CI": "[0.7139, 0.8337]",
+        "Brier Score": 0.1237,
+        "Macro-F1": 0.5145,
+        "Inference Reliability Notes": "Sufficient statistical power (N >= 50)"
       },
       {
         "Stratum": "<15m | isolated",
         "Sample Count": 235,
         "Positive Rate": 0.6723,
-        "Retention AUC": 0.5012,
-        "Brier Score": 0.2348,
-        "Macro-F1": 0.4057
+        "Retention AUC": 0.6758,
+        "AUC 95% CI": "[0.6060, 0.7437]",
+        "Brier Score": 0.2065,
+        "Macro-F1": 0.6034,
+        "Inference Reliability Notes": "Sufficient statistical power (N >= 50)"
       },
       {
         "Stratum": "<15m | related_interference",
         "Sample Count": 161,
         "Positive Rate": 0.7888,
-        "Retention AUC": 0.5505,
-        "Brier Score": 0.2157,
-        "Macro-F1": 0.4524
+        "Retention AUC": 0.7677,
+        "AUC 95% CI": "[0.6861, 0.8523]",
+        "Brier Score": 0.141,
+        "Macro-F1": 0.6725,
+        "Inference Reliability Notes": "Sufficient statistical power (N >= 50)"
       },
       {
         "Stratum": "<15m | unrelated_interference",
         "Sample Count": 35,
         "Positive Rate": 0.6857,
-        "Retention AUC": 0.6061,
-        "Brier Score": 0.2297,
-        "Macro-F1": 0.6182
+        "Retention AUC": 0.7197,
+        "AUC 95% CI": "[0.5319, 0.9050]",
+        "Brier Score": 0.1968,
+        "Macro-F1": 0.5949,
+        "Inference Reliability Notes": "Moderate sample size (20 <= N < 50); wide confidence interval"
       },
       {
         "Stratum": "15m-60m | isolated",
         "Sample Count": 17,
         "Positive Rate": 0.5294,
-        "Retention AUC": 0.5139,
-        "Brier Score": 0.2525,
-        "Macro-F1": 0.4711
+        "Retention AUC": 0.7917,
+        "AUC 95% CI": "[0.4857, 1.0000]",
+        "Brier Score": 0.2016,
+        "Macro-F1": 0.6886,
+        "Inference Reliability Notes": "Small sample size (N < 20); high variance, interpret with extreme caution"
       },
       {
         "Stratum": "15m-60m | related_interference",
         "Sample Count": 8,
         "Positive Rate": 0.75,
-        "Retention AUC": 0.3333,
-        "Brier Score": 0.2274,
-        "Macro-F1": 0.4286
+        "Retention AUC": 1.0,
+        "AUC 95% CI": "N/A",
+        "Brier Score": 0.1239,
+        "Macro-F1": 0.4286,
+        "Inference Reliability Notes": "Small sample size (N < 20); high variance, interpret with extreme caution"
       },
       {
         "Stratum": "15m-60m | unrelated_interference",
         "Sample Count": 4,
         "Positive Rate": 1.0,
         "Retention AUC": "N/A",
-        "Brier Score": 0.1725,
-        "Macro-F1": "N/A"
+        "AUC 95% CI": "N/A",
+        "Brier Score": 0.0502,
+        "Macro-F1": "N/A",
+        "Inference Reliability Notes": "Small sample size (N < 20); high variance, interpret with extreme caution"
       },
       {
         "Stratum": "1h-24h | isolated",
         "Sample Count": 58,
         "Positive Rate": 0.8103,
-        "Retention AUC": 0.6847,
-        "Brier Score": 0.202,
-        "Macro-F1": 0.4476
+        "Retention AUC": 0.7427,
+        "AUC 95% CI": "[0.5416, 0.9161]",
+        "Brier Score": 0.1424,
+        "Macro-F1": 0.6712,
+        "Inference Reliability Notes": "Sufficient statistical power (N >= 50)"
       },
       {
         "Stratum": "1h-24h | related_interference",
         "Sample Count": 108,
         "Positive Rate": 0.8611,
-        "Retention AUC": 0.5254,
-        "Brier Score": 0.2064,
-        "Macro-F1": 0.4627
+        "Retention AUC": 0.7283,
+        "AUC 95% CI": "[0.5874, 0.8446]",
+        "Brier Score": 0.1138,
+        "Macro-F1": 0.46,
+        "Inference Reliability Notes": "Sufficient statistical power (N >= 50)"
       },
       {
         "Stratum": "1h-24h | unrelated_interference",
         "Sample Count": 29,
         "Positive Rate": 0.8621,
-        "Retention AUC": 0.63,
-        "Brier Score": 0.2075,
-        "Macro-F1": 0.463
+        "Retention AUC": 0.79,
+        "AUC 95% CI": "[0.5614, 0.9630]",
+        "Brier Score": 0.1103,
+        "Macro-F1": 0.4528,
+        "Inference Reliability Notes": "Moderate sample size (20 <= N < 50); wide confidence interval"
       },
       {
         "Stratum": "1d-7d | isolated",
         "Sample Count": 67,
         "Positive Rate": 0.6866,
-        "Retention AUC": 0.5518,
-        "Brier Score": 0.2256,
-        "Macro-F1": 0.4071
+        "Retention AUC": 0.7692,
+        "AUC 95% CI": "[0.6570, 0.8729]",
+        "Brier Score": 0.18,
+        "Macro-F1": 0.5895,
+        "Inference Reliability Notes": "Sufficient statistical power (N >= 50)"
       },
       {
         "Stratum": "1d-7d | related_interference",
         "Sample Count": 298,
         "Positive Rate": 0.8893,
-        "Retention AUC": 0.5034,
-        "Brier Score": 0.2011,
-        "Macro-F1": 0.4707
+        "Retention AUC": 0.6758,
+        "AUC 95% CI": "[0.5737, 0.7704]",
+        "Brier Score": 0.098,
+        "Macro-F1": 0.4941,
+        "Inference Reliability Notes": "Sufficient statistical power (N >= 50)"
       },
       {
         "Stratum": "1d-7d | unrelated_interference",
         "Sample Count": 62,
         "Positive Rate": 0.7419,
-        "Retention AUC": 0.4389,
-        "Brier Score": 0.2273,
-        "Macro-F1": 0.4206
+        "Retention AUC": 0.6726,
+        "AUC 95% CI": "[0.5252, 0.8043]",
+        "Brier Score": 0.1864,
+        "Macro-F1": 0.5231,
+        "Inference Reliability Notes": "Sufficient statistical power (N >= 50)"
       },
       {
         "Stratum": ">7d | isolated",
         "Sample Count": 17,
         "Positive Rate": 0.8824,
-        "Retention AUC": 0.4333,
-        "Brier Score": 0.1933,
-        "Macro-F1": 0.4688
+        "Retention AUC": 0.9667,
+        "AUC 95% CI": "[0.8667, 1.0000]",
+        "Brier Score": 0.0673,
+        "Macro-F1": 0.4688,
+        "Inference Reliability Notes": "Small sample size (N < 20); high variance, interpret with extreme caution"
       },
       {
         "Stratum": ">7d | related_interference",
         "Sample Count": 328,
         "Positive Rate": 0.8293,
-        "Retention AUC": 0.4964,
-        "Brier Score": 0.2074,
-        "Macro-F1": 0.4533
+        "Retention AUC": 0.7647,
+        "AUC 95% CI": "[0.6910, 0.8301]",
+        "Brier Score": 0.1212,
+        "Macro-F1": 0.521,
+        "Inference Reliability Notes": "Sufficient statistical power (N >= 50)"
       },
       {
         "Stratum": ">7d | unrelated_interference",
         "Sample Count": 37,
         "Positive Rate": 0.7027,
-        "Retention AUC": 0.4301,
-        "Brier Score": 0.23,
-        "Macro-F1": 0.4127
+        "Retention AUC": 0.7692,
+        "AUC 95% CI": "[0.5903, 0.9277]",
+        "Brier Score": 0.1714,
+        "Macro-F1": 0.4565,
+        "Inference Reliability Notes": "Moderate sample size (20 <= N < 50); wide confidence interval"
       }
     ]
   }

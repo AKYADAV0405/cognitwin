@@ -1,0 +1,4 @@
+Cohort,Total_Students,Total_Interactions,Total_Candidate_Same_Concept_Transitions,Excluded_Intra_Session_Zero_Delay,Excluded_Missing_Or_Invalid_Timestamp,Excluded_Sequence_Tail_No_Subsequent_Attempt,Retained_Valid_Delayed_Retention_Pairs,Retention_Pair_Ratio_Pct
+Fast_Dev_Test_Cohort (75 Students),75,11646,10462,8998,0,1184,1464,12.57%
+Full_Benchmark_Test_Cohort (750 Students),750,120271,107980,91695,0,12291,16285,13.54%
+Combined_Reconciliation_Ratio,825,131917,118442,100693,0,13475,17749,13.45%

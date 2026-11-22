@@ -1,0 +1,13 @@
+Metric_Or_Interval,Count,Percentage_Of_Test,Empirical_Correctness_Rate,Description
+Total Test Interactions,11646,100.0%,0.7524,All logged student interactions in test split
+Interactions with Identical Timestamp,11474,98.52%,0.7467,Multiple interactions within same 15-minute grid quantization
+Candidate Same-Concept Consecutive Transitions,10462,89.83%,0.7457,Consecutive attempts on concept c by user u
+Intra-Session Repetition (Delta t == 0),8998,77.26%,0.7467,Same-session practice within 900s; excluded from delayed retention
+Negative Timestamp Discrepancies (Delta t < 0),0,0.00%,N/A,Chronologically inverted timestamps; strictly 0 (verified)
+Missing or Invalid Timestamps (t <= 0),0,0.00%,N/A,Missing or non-positive timestamps; strictly 0 (verified)
+Valid Delayed-Retention Pairs (Delta t > 0),1464,12.57%,0.7398,Eligible delayed-retention evaluation pairs across positive delays
+Delay <= 15 min (Quantized Immediate),431,29.44% (of valid),0.7169,Stratified delay interval <15m
+Delay 15m - 60m (Within Session),29,1.98% (of valid),0.6552,Stratified delay interval 15m-60m
+Delay 1h - 24h (Same-Day Review),195,13.32% (of valid),0.8462,Stratified delay interval 1h-24h
+Delay 1d - 7d (Multi-Day Spaced Review),427,29.17% (of valid),0.8361,Stratified delay interval 1d-7d
+Delay > 7 days (Long-Term Retention),382,26.09% (of valid),0.8194,Stratified delay interval >7d

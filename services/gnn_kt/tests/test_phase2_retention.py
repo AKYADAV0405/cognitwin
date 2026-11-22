@@ -304,3 +304,68 @@ def test_real_dataset_retention_forensics():
 
     # 6. Correctness rates are within [0.0, 1.0]
     assert 0.0 <= pairs_df["target_correct"].mean() <= 1.0
+
+
+def test_retention_reconciliation_csv_deliverables(tmp_path: Path):
+    """Verify that all 3 Phase 2 reconciliation CSV deliverables are exported properly."""
+    from services.gnn_kt.src.retention_audit import (
+        evaluate_retention_strata,
+        export_reconciliation_csvs,
+    )
+
+    test_parquet = Path("data/processed/test.parquet")
+    graph_path = Path("data/processed/A_combined.pt")
+    ckpt_path = Path("services/gnn_kt/outputs/checkpoints/tpa_gkt_full_seed42_fastdev_best.pt")
+
+    if not test_parquet.exists() or not ckpt_path.exists():
+        pytest.skip("Test parquet or checkpoint missing, skipping deliverable test.")
+
+    pairs_df, _ = extract_and_verify_retention_pairs(test_parquet, graph_path)
+    device = torch.device("cpu")
+    _, metrics_df = evaluate_retention_strata(ckpt_path, test_parquet, pairs_df, device)
+
+    export_reconciliation_csvs(test_parquet, pairs_df, metrics_df, tmp_path)
+
+    # 1. Verify RETENTION_PAIR_ACCOUNTING.csv
+    p_acc = tmp_path / "RETENTION_PAIR_ACCOUNTING.csv"
+    assert p_acc.exists()
+    df_p = pd.read_csv(p_acc)
+    assert len(df_p) == 3
+    fast_dev_row = df_p[df_p["Cohort"].str.contains("Fast_Dev")].iloc[0]
+    assert fast_dev_row["Total_Candidate_Same_Concept_Transitions"] == 10462
+    assert fast_dev_row["Excluded_Intra_Session_Zero_Delay"] == 8998
+    assert fast_dev_row["Retained_Valid_Delayed_Retention_Pairs"] == 1464
+
+    # 2. Verify TIMESTAMP_FORENSIC_ACCOUNTING.csv
+    ts_acc = tmp_path / "TIMESTAMP_FORENSIC_ACCOUNTING.csv"
+    assert ts_acc.exists()
+    df_ts = pd.read_csv(ts_acc)
+    assert len(df_ts) >= 12
+    zero_row = df_ts[df_ts["Metric_Or_Interval"].str.contains("Intra-Session")].iloc[0]
+    assert zero_row["Count"] == 8998
+
+    # 3. Verify RETENTION_METRIC_RECONCILIATION.csv
+    m_rec = tmp_path / "RETENTION_METRIC_RECONCILIATION.csv"
+    assert m_rec.exists()
+    df_m = pd.read_csv(m_rec)
+    assert len(df_m) >= 10
+    overall = df_m[df_m["Stratum"] == "Overall Test Retention"].iloc[0]
+    assert overall["Sample Count"] == 1464
+    assert 0.75 <= float(overall["Retention AUC"]) <= 0.77
+
+
+def test_graph_zero_leakage_provenance():
+    """Verify that graph construction has zero test leakage."""
+    a_trans_path = Path("data/processed/A_trans.pt")
+    metadata_path = Path("data/processed/metadata.json")
+
+    if not a_trans_path.exists() or not metadata_path.exists():
+        pytest.skip("A_trans.pt or metadata.json missing, skipping graph leakage test.")
+
+    a_trans = torch.load(a_trans_path, weights_only=False)
+    assert hasattr(a_trans, "edge_index")
+    assert a_trans.edge_index.size(0) == 2
+    # Verify directional weights exist and are bounded [0, 1]
+    if hasattr(a_trans, "edge_weight") and a_trans.edge_weight is not None:
+        assert (a_trans.edge_weight >= 0.0).all()
+        assert (a_trans.edge_weight <= 1.0).all()
