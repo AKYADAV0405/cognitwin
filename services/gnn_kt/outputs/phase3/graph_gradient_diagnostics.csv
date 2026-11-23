@@ -1,0 +1,36 @@
+Parameter,Component,Shape,Param Count,Grad L2 Norm,Grad Abs Mean,Grad Abs Max,Has Gradient,Total Model L2 Norm
+concept_base_emb,Stage 1: Concept Base Embedding,"[150, 64]",9600,0.041152,0.000232,0.003607,True,0.165914
+gnn1.bias,Stage 1: GNN Encoder,[64],64,0.064825,0.00609,0.022803,True,0.165914
+gnn1.lin.weight,Stage 1: GNN Encoder,"[64, 64]",4096,0.010189,0.000107,0.001213,True,0.165914
+gnn2.bias,Stage 1: GNN Encoder,[64],64,0.005101,0.000475,0.001633,True,0.165914
+gnn2.lin.weight,Stage 1: GNN Encoder,"[64, 64]",4096,0.010089,0.000105,0.000981,True,0.165914
+gnn_norm1.weight,Stage 1: GNN Encoder,[64],64,0.003656,0.000339,0.001553,True,0.165914
+gnn_norm1.bias,Stage 1: GNN Encoder,[64],64,0.011402,0.001196,0.003189,True,0.165914
+gnn_norm2.weight,Stage 1: GNN Encoder,[64],64,0.003851,0.00034,0.001441,True,0.165914
+gnn_norm2.bias,Stage 1: GNN Encoder,[64],64,0.009073,0.000965,0.002406,True,0.165914
+problem_emb.weight,Stage 2: Problem Embedding,"[2836, 64]",181504,0.001266,1e-06,6.5e-05,True,0.165914
+correct_emb.weight,Stage 2: Interaction Projections,"[2, 16]",32,0.002318,0.000355,0.000827,True,0.165914
+diff_emb.weight,Stage 2: Interaction Projections,"[4, 16]",64,0.001547,0.0001,0.000758,True,0.165914
+hint_emb.weight,Other,"[2, 8]",16,0.001703,0.000348,0.000849,True,0.165914
+cont_proj.weight,Stage 2: Interaction Projections,"[16, 4]",64,0.001223,0.000125,0.000349,True,0.165914
+cont_proj.bias,Stage 2: Interaction Projections,[16],16,0.002592,0.000548,0.001017,True,0.165914
+input_proj.0.weight,Stage 2: Interaction Projections,"[128, 184]",23552,0.036985,0.000143,0.00295,True,0.165914
+input_proj.0.bias,Stage 2: Interaction Projections,[128],128,0.004881,0.000307,0.001378,True,0.165914
+input_proj.1.weight,Stage 2: Interaction Projections,[128],128,0.004376,0.000237,0.001741,True,0.165914
+input_proj.1.bias,Stage 2: Interaction Projections,[128],128,0.004133,0.000265,0.001191,True,0.165914
+gru.weight_ih_l0,Stage 2: Recurrent Updater (GRU),"[384, 128]",49152,0.042056,8.1e-05,0.002275,True,0.165914
+gru.weight_hh_l0,Stage 2: Recurrent Updater (GRU),"[384, 128]",49152,0.0137,3.1e-05,0.000575,True,0.165914
+gru.bias_ih_l0,Stage 2: Recurrent Updater (GRU),[384],384,0.006672,0.000185,0.00139,True,0.165914
+gru.bias_hh_l0,Stage 2: Recurrent Updater (GRU),[384],384,0.003147,9.3e-05,0.000751,True,0.165914
+response_head.0.weight,Stage 3: Response Head,"[128, 256]",32768,0.066658,0.000234,0.002124,True,0.165914
+response_head.0.bias,Stage 3: Response Head,[128],128,0.009468,0.000593,0.002333,True,0.165914
+response_head.3.weight,Stage 3: Response Head,"[1, 128]",128,0.106339,0.0067,0.027183,True,0.165914
+response_head.3.bias,Stage 3: Response Head,[1],1,0.025278,0.025278,0.025278,True,0.165914
+mastery_head.0.weight,Stage 3: Mastery Head,"[64, 192]",12288,0.007549,4.3e-05,0.000519,True,0.165914
+mastery_head.0.bias,Stage 3: Mastery Head,[64],64,0.00055,4.8e-05,0.000282,True,0.165914
+mastery_head.2.weight,Stage 3: Mastery Head,"[1, 64]",64,0.004461,0.000431,0.0014,True,0.165914
+mastery_head.2.bias,Stage 3: Mastery Head,[1],1,0.001506,0.001506,0.001506,True,0.165914
+retention_head.0.weight,Stage 3: Retention Head,"[128, 196]",25088,0.023476,4.7e-05,0.007016,True,0.165914
+retention_head.0.bias,Stage 3: Retention Head,[128],128,0.001359,7.2e-05,0.000513,True,0.165914
+retention_head.3.weight,Stage 3: Retention Head,"[1, 128]",128,0.02417,0.001295,0.006903,True,0.165914
+retention_head.3.bias,Stage 3: Retention Head,[1],1,0.001992,0.001992,0.001992,True,0.165914

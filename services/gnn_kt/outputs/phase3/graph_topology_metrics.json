@@ -1,0 +1,183 @@
+{
+  "curriculum_hierarchy_graph_A_hier": {
+    "graph_name": "A_hier",
+    "total_nodes": 150,
+    "total_edges": 3036,
+    "self_loops": 0,
+    "duplicate_edges": 0,
+    "non_self_directed_edges": 3036,
+    "density_excluding_self_loops": 0.135839,
+    "density_including_self_loops": 0.134933,
+    "in_degree": {
+      "min": 4,
+      "max": 149,
+      "mean": 20.24,
+      "median": 15.0,
+      "std": 24.71
+    },
+    "out_degree": {
+      "min": 4,
+      "max": 149,
+      "mean": 20.24,
+      "median": 15.0,
+      "std": 24.71
+    },
+    "isolated_nodes_count": 0,
+    "isolated_nodes_pct": 0.0,
+    "symmetry": {
+      "is_fully_symmetric": true,
+      "reciprocity_ratio": 1.0,
+      "symmetric_pairs_count": 1518,
+      "asymmetric_directed_edges_count": 0,
+      "weight_mismatches_in_symmetric_pairs": 0
+    },
+    "connected_components": {
+      "num_weakly_connected": 1,
+      "num_strongly_connected": 1,
+      "largest_weakly_connected_size": 150,
+      "largest_strongly_connected_size": 150,
+      "nontrivial_strongly_connected_components": 1
+    },
+    "topology": {
+      "is_dag": false,
+      "has_cycles": true,
+      "diameter_largest_component": 2,
+      "avg_shortest_path_length": 1.8642
+    },
+    "weight_distribution": {
+      "min": 0.25,
+      "max": 1.0,
+      "mean": 0.5733,
+      "std": 0.2229,
+      "quantiles": {
+        "p25": 0.5,
+        "p50": 0.5,
+        "p75": 0.5
+      }
+    }
+  },
+  "empirical_transition_graph_A_trans": {
+    "graph_name": "A_trans",
+    "total_nodes": 150,
+    "total_edges": 404,
+    "self_loops": 0,
+    "duplicate_edges": 0,
+    "non_self_directed_edges": 404,
+    "density_excluding_self_loops": 0.018076,
+    "density_including_self_loops": 0.017956,
+    "in_degree": {
+      "min": 0,
+      "max": 8,
+      "mean": 2.69,
+      "median": 2.0,
+      "std": 1.84
+    },
+    "out_degree": {
+      "min": 0,
+      "max": 7,
+      "mean": 2.69,
+      "median": 2.0,
+      "std": 1.83
+    },
+    "isolated_nodes_count": 15,
+    "isolated_nodes_pct": 10.0,
+    "symmetry": {
+      "is_fully_symmetric": false,
+      "reciprocity_ratio": 0.901,
+      "symmetric_pairs_count": 182,
+      "asymmetric_directed_edges_count": 40,
+      "weight_mismatches_in_symmetric_pairs": 181
+    },
+    "connected_components": {
+      "num_weakly_connected": 39,
+      "num_strongly_connected": 49,
+      "largest_weakly_connected_size": 25,
+      "largest_strongly_connected_size": 12,
+      "nontrivial_strongly_connected_components": 30
+    },
+    "topology": {
+      "is_dag": false,
+      "has_cycles": true,
+      "diameter_largest_component": 7,
+      "avg_shortest_path_length": 3.0733
+    },
+    "weight_distribution": {
+      "min": 0.0508,
+      "max": 0.7123,
+      "mean": 0.2056,
+      "std": 0.1261,
+      "quantiles": {
+        "p25": 0.1061,
+        "p50": 0.1725,
+        "p75": 0.2672
+      }
+    }
+  },
+  "combined_dual_graph_A_combined": {
+    "graph_name": "A_combined",
+    "total_nodes": 150,
+    "total_edges": 3207,
+    "self_loops": 150,
+    "duplicate_edges": 0,
+    "non_self_directed_edges": 3057,
+    "density_excluding_self_loops": 0.136779,
+    "density_including_self_loops": 0.142533,
+    "in_degree": {
+      "min": 4,
+      "max": 149,
+      "mean": 20.38,
+      "median": 15.0,
+      "std": 24.68
+    },
+    "out_degree": {
+      "min": 4,
+      "max": 149,
+      "mean": 20.38,
+      "median": 15.5,
+      "std": 24.7
+    },
+    "isolated_nodes_count": 0,
+    "isolated_nodes_pct": 0.0,
+    "symmetry": {
+      "is_fully_symmetric": false,
+      "reciprocity_ratio": 0.9964,
+      "symmetric_pairs_count": 1523,
+      "asymmetric_directed_edges_count": 11,
+      "weight_mismatches_in_symmetric_pairs": 210
+    },
+    "connected_components": {
+      "num_weakly_connected": 1,
+      "num_strongly_connected": 1,
+      "largest_weakly_connected_size": 150,
+      "largest_strongly_connected_size": 150,
+      "nontrivial_strongly_connected_components": 1
+    },
+    "topology": {
+      "is_dag": false,
+      "has_cycles": true,
+      "diameter_largest_component": 2,
+      "avg_shortest_path_length": 1.8627
+    },
+    "weight_distribution": {
+      "min": 0.0262,
+      "max": 1.0,
+      "mean": 0.3311,
+      "std": 0.2024,
+      "quantiles": {
+        "p25": 0.25,
+        "p50": 0.25,
+        "p75": 0.25
+      }
+    }
+  },
+  "graph_overlap_analysis": {
+    "hier_edges_total": 3036,
+    "trans_edges_total": 404,
+    "intersection_edges_count": 383,
+    "hier_only_edges_count": 2653,
+    "trans_only_edges_count": 21,
+    "pct_of_trans_contained_in_hier": 94.8,
+    "pct_of_hier_contained_in_trans": 12.62,
+    "jaccard_similarity": 0.1253
+  }
+}

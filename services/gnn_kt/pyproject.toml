@@ -38,6 +38,8 @@ ignore = ["N812", "E402"]
 [tool.ruff.lint.per-file-ignores]
 "src/inspect_data.py" = ["E501"]
 "src/final_validation_audit.py" = ["E501"]
+"src/phase3_graph_investigation.py" = ["E501"]
+"tests/test_phase3_graph_investigation.py" = ["E501"]
 "notebooks/*.ipynb" = ["E501", "F821"]
 
 [tool.pytest.ini_options]

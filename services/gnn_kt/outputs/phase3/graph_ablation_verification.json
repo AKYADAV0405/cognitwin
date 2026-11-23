@@ -1,0 +1,154 @@
+{
+  "fast_dev_ablations": [
+    {
+      "Variant": "TPA-GKT (Ours)",
+      "Description": "Full TPA-GKT (Dual Graph + Time Decay + Multi-Head)",
+      "Next-Response AUC": 0.7372,
+      "Next-Response Macro-F1": 0.6249,
+      "Next-Response Brier": 0.161,
+      "Overall Retention AUC": 0.7581,
+      "Retention AUC (>7d)": 0.7755
+    },
+    {
+      "Variant": "w/o Curriculum Graph (A_hier)",
+      "Description": "Uses empirical transition graph only (alpha = 0.0)",
+      "Next-Response AUC": 0.7387,
+      "Next-Response Macro-F1": 0.6208,
+      "Next-Response Brier": 0.1608,
+      "Overall Retention AUC": 0.7616,
+      "Retention AUC (>7d)": 0.7853
+    },
+    {
+      "Variant": "w/o Transition Graph (A_trans)",
+      "Description": "Uses curriculum hierarchy graph only (alpha = 1.0)",
+      "Next-Response AUC": 0.7371,
+      "Next-Response Macro-F1": 0.626,
+      "Next-Response Brier": 0.1611,
+      "Overall Retention AUC": 0.7577,
+      "Retention AUC (>7d)": 0.7743
+    },
+    {
+      "Variant": "w/o Time Decay (Delta t)",
+      "Description": "Zeroes out temporal elapsed study gap signals",
+      "Next-Response AUC": 0.7373,
+      "Next-Response Macro-F1": 0.6263,
+      "Next-Response Brier": 0.161,
+      "Overall Retention AUC": 0.7582,
+      "Retention AUC (>7d)": 0.776
+    },
+    {
+      "Variant": "w/o Attempt & Hint Features",
+      "Description": "Restricts multi-modal features to concept & correctness only",
+      "Next-Response AUC": 0.7318,
+      "Next-Response Macro-F1": 0.6036,
+      "Next-Response Brier": 0.1621,
+      "Overall Retention AUC": 0.7537,
+      "Retention AUC (>7d)": 0.7758
+    },
+    {
+      "Variant": "w/o Graph Propagation (No GNN)",
+      "Description": "Bypasses Stage 1 GNN message passing entirely",
+      "Next-Response AUC": 0.7317,
+      "Next-Response Macro-F1": 0.6089,
+      "Next-Response Brier": 0.162,
+      "Overall Retention AUC": 0.75,
+      "Retention AUC (>7d)": 0.7773
+    },
+    {
+      "Variant": "GAT Backbone (vs GCN)",
+      "Description": "Replaces spectral GCN convolution with multi-head GAT",
+      "Next-Response AUC": 0.7309,
+      "Next-Response Macro-F1": 0.6263,
+      "Next-Response Brier": 0.1639,
+      "Overall Retention AUC": 0.7509,
+      "Retention AUC (>7d)": 0.7748
+    }
+  ],
+  "fast_dev_table3": [
+    {
+      "Model": "DKT",
+      "Next-Response AUC": 0.7057,
+      "Next-Response ACC": 0.7545,
+      "Next-Response Macro-F1": 0.4474,
+      "Next-Response Weighted-F1": 0.6552,
+      "Next-Response Binary-F1": 0.8593,
+      "Next-Response Brier": 0.1716,
+      "Retention AUC": NaN,
+      "Retention Macro-F1": NaN
+    },
+    {
+      "Model": "SAKT",
+      "Next-Response AUC": 0.6835,
+      "Next-Response ACC": 0.756,
+      "Next-Response Macro-F1": 0.4754,
+      "Next-Response Weighted-F1": 0.6689,
+      "Next-Response Binary-F1": 0.8591,
+      "Next-Response Brier": 0.1721,
+      "Retention AUC": NaN,
+      "Retention Macro-F1": NaN
+    },
+    {
+      "Model": "GKT",
+      "Next-Response AUC": 0.7319,
+      "Next-Response ACC": 0.7653,
+      "Next-Response Macro-F1": 0.5422,
+      "Next-Response Weighted-F1": 0.7034,
+      "Next-Response Binary-F1": 0.8618,
+      "Next-Response Brier": 0.1641,
+      "Retention AUC": NaN,
+      "Retention Macro-F1": NaN
+    },
+    {
+      "Model": "TPA-GKT (Ours)",
+      "Next-Response AUC": 0.7372,
+      "Next-Response ACC": 0.7698,
+      "Next-Response Macro-F1": 0.6249,
+      "Next-Response Weighted-F1": 0.7425,
+      "Next-Response Binary-F1": 0.858,
+      "Next-Response Brier": 0.161,
+      "Retention AUC": 0.7581,
+      "Retention Macro-F1": 0.5977
+    }
+  ],
+  "comparison_delta_vs_no_graph": {
+    "full_tpa_gkt_resp_auc": 0.7372,
+    "no_graph_resp_auc": 0.7317,
+    "delta_resp_auc": 0.0055,
+    "full_tpa_gkt_ret_auc": 0.7581,
+    "no_graph_ret_auc": 0.75,
+    "delta_ret_auc": 0.0081,
+    "delta_brier": -0.001,
+    "interpretation": "In local fast-dev (500 students), graph propagation provides +0.0055 response AUC and +0.0081 retention AUC over no-graph. However, removing curriculum graph (A_hier) results in 0.7387 AUC (+0.0015 higher than full TPA-GKT), indicating curriculum graph clique edges may induce mild noise or over-smoothing."
+  },
+  "fast_dev_ablations_source": "services\\gnn_kt\\outputs\\results_fast_dev\\ablations.csv",
+  "key_variants": {
+    "gat_backbone": {
+      "Variant": "GAT Backbone (vs GCN)",
+      "Description": "Replaces spectral GCN convolution with multi-head GAT",
+      "Next-Response AUC": 0.7309,
+      "Next-Response Macro-F1": 0.6263,
+      "Next-Response Brier": 0.1639,
+      "Overall Retention AUC": 0.7509,
+      "Retention AUC (>7d)": 0.7748
+    },
+    "wo_hier": {
+      "Variant": "w/o Curriculum Graph (A_hier)",
+      "Description": "Uses empirical transition graph only (alpha = 0.0)",
+      "Next-Response AUC": 0.7387,
+      "Next-Response Macro-F1": 0.6208,
+      "Next-Response Brier": 0.1608,
+      "Overall Retention AUC": 0.7616,
+      "Retention AUC (>7d)": 0.7853
+    },
+    "wo_trans": {
+      "Variant": "w/o Transition Graph (A_trans)",
+      "Description": "Uses curriculum hierarchy graph only (alpha = 1.0)",
+      "Next-Response AUC": 0.7371,
+      "Next-Response Macro-F1": 0.626,
+      "Next-Response Brier": 0.1611,
+      "Overall Retention AUC": 0.7577,
+      "Retention AUC (>7d)": 0.7743
+    }
+  },
+  "fast_dev_table3_source": "services\\gnn_kt\\outputs\\results_fast_dev\\table3_results.csv"
+}
