@@ -14,9 +14,11 @@ Validates:
 
 from __future__ import annotations
 
+import json
 import sys
 from pathlib import Path
 
+import numpy as np
 import pandas as pd
 import pytest
 import torch
@@ -332,9 +334,20 @@ def test_retention_reconciliation_csv_deliverables(tmp_path: Path):
     df_p = pd.read_csv(p_acc)
     assert len(df_p) == 3
     fast_dev_row = df_p[df_p["Cohort"].str.contains("Fast_Dev")].iloc[0]
-    assert fast_dev_row["Total_Candidate_Same_Concept_Transitions"] == 10462
-    assert fast_dev_row["Excluded_Intra_Session_Zero_Delay"] == 8998
-    assert fast_dev_row["Retained_Valid_Delayed_Retention_Pairs"] == 1464
+    assert fast_dev_row["Total_Interaction_Records"] == 11646
+    assert fast_dev_row["Valid_Delayed_Retention_Pairs_DeltaT_Pos"] == 1464
+    assert fast_dev_row["Intra_Session_Zero_Delay_DeltaT_Zero"] == 8998
+    assert fast_dev_row["Terminal_Concept_Tail_No_Subsequent_Attempt"] == 1184
+    assert fast_dev_row["Accounting_Sum_Check"] == 11646
+    assert bool(fast_dev_row["Balances_Exactly"]) is True
+
+    # 1B. Verify COHORT_OVERLAP_ACCOUNTING.csv
+    o_acc = tmp_path / "COHORT_OVERLAP_ACCOUNTING.csv"
+    assert o_acc.exists()
+    df_o = pd.read_csv(o_acc)
+    assert len(df_o) == 11
+    inter_row = df_o[df_o["Metric"].str.contains("Overlapping_Test_Students_Intersection")].iloc[0]
+    assert inter_row["Count"] == 11
 
     # 2. Verify TIMESTAMP_FORENSIC_ACCOUNTING.csv
     ts_acc = tmp_path / "TIMESTAMP_FORENSIC_ACCOUNTING.csv"
@@ -352,6 +365,96 @@ def test_retention_reconciliation_csv_deliverables(tmp_path: Path):
     overall = df_m[df_m["Stratum"] == "Overall Test Retention"].iloc[0]
     assert overall["Sample Count"] == 1464
     assert 0.75 <= float(overall["Retention AUC"]) <= 0.77
+
+
+def test_pair_accounting_exact_arithmetic_balance():
+    """Verify that every interaction record receives exactly 1 mutually exclusive disposition."""
+    test_parquet = Path("data/processed/test.parquet")
+    if not test_parquet.exists():
+        pytest.skip("test.parquet missing, skipping accounting balance test.")
+
+    df = pd.read_parquet(test_parquet)
+    df_sorted = df.sort_values(by=["uuid", "timestamp_sec", "orig_idx"]).reset_index(drop=True)
+
+    next_u = df_sorted.groupby(["uuid", "ucid"])["uuid"].shift(-1)
+    next_t = df_sorted.groupby(["uuid", "ucid"])["timestamp_sec"].shift(-1)
+    has_cand = ~next_u.isna()
+    dt = (next_t - df_sorted["timestamp_sec"]).values
+
+    n_total = len(df_sorted)
+    n_valid = int(((dt > 0) & has_cand).sum())
+    n_zero = int(((dt == 0) & has_cand).sum())
+    n_tail = int((~has_cand).sum())
+    n_neg = int(((dt < 0) & has_cand).sum())
+    n_inv = int((df_sorted["timestamp_sec"] <= 0).sum())
+
+    # 1. Total interactions match sum of 5 mutually exclusive dispositions
+    assert n_valid + n_zero + n_tail + n_neg + n_inv == n_total
+    assert n_total == 11646
+    assert n_valid == 1464
+    assert n_zero == 8998
+    assert n_tail == 1184
+    assert n_neg == 0
+    assert n_inv == 0
+
+    # 2. Terminal concept tails match unique (uuid, ucid) student-concept sequences
+    assert n_tail == df_sorted.groupby(["uuid", "ucid"]).ngroups
+
+    # 3. Valid retention pairs match has_retention_target column
+    assert n_valid == int(df["has_retention_target"].sum())
+
+
+def test_cohort_student_id_overlap():
+    """Verify empirical ID-level student overlap between local fast-dev and full benchmark."""
+    eligible_path = Path("data/processed/eligible_students.json")
+    test_parquet = Path("data/processed/test.parquet")
+
+    if not eligible_path.exists() or not test_parquet.exists():
+        pytest.skip("eligible_students.json or test.parquet missing, skipping overlap test.")
+
+    with open(eligible_path, encoding="utf-8") as f:
+        eligible = json.load(f)
+
+    # Reconstruct 500 fast-dev cohort
+    rng_500 = np.random.RandomState(42)
+    sel_500 = sorted(rng_500.choice(eligible, size=500, replace=False).tolist())
+    u_500 = np.array(sel_500)
+    split_rng_500 = np.random.RandomState(42)
+    split_rng_500.shuffle(u_500)
+    test_500 = set(u_500[int(500 * 0.85):])
+
+    # Reconstruct 5,000 full benchmark cohort
+    rng_5000 = np.random.RandomState(42)
+    sel_5000 = sorted(rng_5000.choice(eligible, size=5000, replace=False).tolist())
+    u_5000 = np.array(sel_5000)
+    split_rng_5000 = np.random.RandomState(42)
+    split_rng_5000.shuffle(u_5000)
+    train_5000 = set(u_5000[:int(5000 * 0.70)])
+    val_5000 = set(u_5000[int(5000 * 0.70):int(5000 * 0.85)])
+    test_5000 = set(u_5000[int(5000 * 0.85):])
+
+    # Assert local test matches actual test.parquet
+    df_test = pd.read_parquet(test_parquet)
+    actual_test_uuids = set(df_test["uuid"].unique())
+    assert actual_test_uuids == test_500
+    assert len(test_500) == 75
+    assert len(test_5000) == 750
+
+    # Overlap assertions
+    overlap_test = test_500.intersection(test_5000)
+    overlap_train = test_500.intersection(train_5000)
+    overlap_val = test_500.intersection(val_5000)
+
+    assert len(overlap_test) == 11
+    assert len(overlap_train) == 57
+    assert len(overlap_val) == 7
+    assert len(test_500 - test_5000) == 64
+    assert len(test_5000 - test_500) == 739
+
+    # Interaction & retention pair counts for overlapping students
+    df_overlap = df_test[df_test["uuid"].isin(overlap_test)]
+    assert len(df_overlap) == 1633
+    assert int(df_overlap["has_retention_target"].sum()) == 299
 
 
 def test_graph_zero_leakage_provenance():

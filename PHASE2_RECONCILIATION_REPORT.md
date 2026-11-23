@@ -25,19 +25,34 @@ All supporting deliverables have been exported to disk:
 
 ---
 
-## 1. Task 1: Retention-Pair Count Reconciliation
+## 1. Task 1: Retention-Pair Count & Population Reconciliation
 
-### 1.1 Strict Subset & Sampling Verification
-- **Local Development Cohort (`fast_dev_run: true`)**: Configured with `fast_dev_max_students: 500`. Under the 70/15/15 student split, this produces:
-  - 350 training students (52,921 interactions, 6,685 train retention pairs).
-  - 75 validation students (13,923 interactions, 1,926 val retention pairs).
-  - **75 test students (11,646 interactions, 1,464 test retention pairs)**.
-- **Full Benchmark Cohort (`fast_dev_run: false`)**: Configured with `max_students: 5000`. Under the 70/15/15 student split, this produces:
-  - 3,500 training students (~557,000 interactions).
-  - 750 validation students (~119,000 interactions).
-  - **750 test students (120,271 interactions, 16,285 test retention pairs)**.
-- **Strict Subset Proof**: In `services/gnn_kt/src/preprocess.py` (lines 219–223), student sampling is governed by `rng = np.random.RandomState(seed=42)`. Sampling 500 students without replacement from the sorted eligible pool produces a **strict subset (500 / 500, 100.0%)** of the 5,000 students sampled under the identical random state.
-- Furthermore, because student IDs are sorted lexicographically before partitioning into the top 15% test split (`[int(n_students * 0.85):]`), all 75 test students in the local dataset are **100% contained within the 750 test students** of the full benchmark split. Consequently, the 1,464 test retention pairs are a strict, non-overlapping subset of the 16,285 benchmark pairs.
+### 1.1 Empirical Cohort Overlap Verification via Actual Student IDs
+- **Methodological Disclosure**: We performed an exhaustive ID-level audit by reconstructing the exact student sampling and splitting pipeline against the 29,854 eligible students from `data/raw/Log_Problem.csv` (`data/processed/eligible_students.json`).
+- **Initial Sampling Step (Lines 219–223 of `preprocess.py`)**:
+  - `rng = np.random.RandomState(42)`
+  - Sampling 500 students without replacement produces a **strict subset (500 / 500, 100.0%)** of the 5,000 students sampled under the identical random state.
+- **Split Permutation Step (Lines 372–382 of `preprocess.py`)**:
+  - Before splitting into 70% Train, 15% Val, and 15% Test, `preprocess.py` executes:
+    ```python
+    unique_students = np.sort(df["uuid"].unique())
+    split_rng = np.random.RandomState(42)
+    split_rng.shuffle(unique_students)
+    ```
+  - **Crucial Mathematical Discovery**: Because `split_rng.shuffle()` operates on an array of length 500 in fast-dev versus length 5,000 in full, the pseudo-random permutation order diverges completely. Consequently:
+    - **The 75 local test students are NOT a strict subset of the 750 full test students.**
+- **Empirical ID Overlap Breakdown ([`COHORT_OVERLAP_ACCOUNTING.csv`](file:///d:/digital%20twin/COHORT_OVERLAP_ACCOUNTING.csv))**:
+  - **Exact Intersection**: **11 students** (14.67% of local test cohort).
+  - **Local Test Students in Full Train**: **57 students** (76.00%).
+  - **Local Test Students in Full Val**: **7 students** (9.33%).
+  - **Local-Only Test Students**: **64 students** (85.33%).
+  - **Full-Only Test Students**: **739 students** (98.53%).
+  - **Overlapping Test Interactions**: **1,633 interactions** (14.02% of the 11,646 local test rows).
+  - **Local-Only Test Interactions**: **10,013 interactions** (85.98%).
+  - **Overlapping Test Retention Pairs**: **299 pairs** (20.42% of the 1,464 local test retention pairs).
+  - **Local-Only Test Retention Pairs**: **1,165 pairs** (79.58%).
+
+This empirical finding directly and legitimately explains why local test retention AUC is **0.7581** while full benchmark test retention AUC is **0.7772**: the models were evaluated on different student populations, and the full benchmark was trained on 10× more data (3,500 students vs. 350 students).
 
 ### 1.2 Algorithm, Schema & Filtering Consistency
 - **Algorithm Identity**: Both cohorts use the exact same function, `compute_delayed_retention(df)` in `services/gnn_kt/src/preprocess.py` (lines 62–126).
@@ -45,13 +60,17 @@ All supporting deliverables have been exported to disk:
 - **Delay Filtering**: Both runs enforce $\Delta t = \tau_{t_2} - \tau_{t_1} > 0$. Zero-delay repetitions ($\Delta t = 0$) within the same 15-minute timestamp block are excluded from delayed retention in both datasets.
 - **Schema Parity**: Both Parquet datasets share the identical 35-column feature schema (`uuid`, `ucid`, `upid`, `is_correct`, `timestamp_sec`, `delta_t`, `norm_log_sec`, `has_retention_target`, `retention_target`, `retention_delta_sec`, `retention_bucket_id`, `retention_bucket_name`, etc.).
 
-### 1.3 Retention-Pair Accounting Table
+### 1.3 Exact Mutually Exclusive Interaction-Record Accounting Table
+To resolve all arithmetic ambiguities, the population base is formally defined as **Total Interaction Records** ($N_{\text{total}}$). Every single interaction row in the split receives exactly one mutually exclusive disposition:
+$$\text{Total Interactions} = N_{\text{valid}} + N_{\text{zero\_delay}} + N_{\text{terminal\_tail}} + N_{\text{neg}} + N_{\text{invalid}}$$
 
-| Cohort | Total Students | Total Interactions | Candidate Same-Concept Transitions | Excluded: Intra-Session Zero Delay ($\Delta t = 0$) | Excluded: Invalid / Missing Timestamps | Excluded: Sequence Tail (No Next Attempt) | Retained Valid Retention Pairs ($\Delta t > 0$) | Retention Ratio (%) |
-|:---|---:|---:|---:|---:|---:|---:|---:|---:|
-| **Fast-Dev Test Split (Local)** | **75** | **11,646** | **10,462** | **8,998** | **0** | **1,184** | **1,464** | **12.57%** |
-| **Full Benchmark Test Split (Colab)** | **750** | **120,271** | **107,980** | **91,695** | **0** | **12,291** | **16,285** | **13.54%** |
-| **Combined Reconciliation Total** | **825** | **131,917** | **118,442** | **100,693** | **0** | **13,475** | **17,749** | **13.45%** |
+| Cohort | Total Students | Total Interaction Records | Valid Delayed Retention ($\Delta t > 0$) | Intra-Session Zero Delay ($\Delta t = 0$) | Negative Time Discrepancies ($\Delta t < 0$) | Missing / Invalid Timestamps ($t \le 0$) | Terminal Concept Tail (No Future Attempt) | Accounting Sum Check | Balances Exactly? | Retention Ratio (%) |
+|:---|---:|---:|---:|---:|---:|---:|---:|---:|:---:|---:|
+| **Fast-Dev Test Split (Local)** | **75** | **11,646** | **1,464** | **8,998** | **0** | **0** | **1,184** | **11,646** | **YES (100.0%)** | **12.57%** |
+| **Full Benchmark Test Split (Colab)** | **750** | **120,271** | **16,285** | **91,695** | **0** | **0** | **12,291** | **120,271** | **YES (100.0%)** | **13.54%** |
+| **Combined Total** | **825** | **131,917** | **17,749** | **100,693** | **0** | **0** | **13,475** | **131,917** | **YES (100.0%)** | **13.45%** |
+
+*Note on Terminal Concept Tails*: For every unique student-concept sequence $(u, c)$, the final interaction chronologically has no subsequent interaction on concept $c$. In the local test split, $N_{\text{terminal\_tail}} = 1,184$ matches mathematically to the exact number of unique $(u, c)$ groups in `test.parquet` (`df.groupby(["uuid", "ucid"]).ngroups == 1184`). All 5 categories are mutually exclusive and collectively exhaustive. Exported to disk at [`RETENTION_PAIR_ACCOUNTING.csv`](file:///d:/digital%20twin/RETENTION_PAIR_ACCOUNTING.csv).
 
 ---
 

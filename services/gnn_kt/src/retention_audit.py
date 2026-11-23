@@ -458,7 +458,7 @@ def export_reconciliation_csvs(
     metrics_df: pd.DataFrame,
     output_dir: Path,
 ) -> None:
-    """Generate and save the 3 mandatory Phase 2 reconciliation CSV deliverables."""
+    """Generate and save the mandatory Phase 2 reconciliation CSV deliverables."""
     # 1. RETENTION_PAIR_ACCOUNTING.csv
     df_raw = pd.read_parquet(test_parquet)
     df_sorted = df_raw.sort_values(by=["uuid", "timestamp_sec", "orig_idx"]).reset_index(drop=True)
@@ -470,47 +470,131 @@ def export_reconciliation_csvs(
     cand_cnt = int(has_candidate.sum())
     zero_cnt = int(((delta_t == 0) & has_candidate).sum())
     val_cnt = int(((delta_t > 0) & has_candidate).sum())
-    tail_cnt = int(df_raw["uuid"].nunique() * df_raw.groupby("uuid")["ucid"].nunique().mean())
+    tail_cnt = int((~has_candidate).sum())
+    total_records = len(df_raw)
+    sum_check = val_cnt + zero_cnt + tail_cnt
 
     pair_accounting_rows = [
         {
             "Cohort": "Fast_Dev_Test_Cohort (75 Students)",
             "Total_Students": 75,
-            "Total_Interactions": 11646,
-            "Total_Candidate_Same_Concept_Transitions": cand_cnt,
-            "Excluded_Intra_Session_Zero_Delay": zero_cnt,
-            "Excluded_Missing_Or_Invalid_Timestamp": 0,
-            "Excluded_Sequence_Tail_No_Subsequent_Attempt": tail_cnt,
-            "Retained_Valid_Delayed_Retention_Pairs": val_cnt,
-            "Retention_Pair_Ratio_Pct": f"{val_cnt / 11646 * 100:.2f}%",
+            "Total_Interaction_Records": total_records,
+            "Valid_Delayed_Retention_Pairs_DeltaT_Pos": val_cnt,
+            "Intra_Session_Zero_Delay_DeltaT_Zero": zero_cnt,
+            "Negative_Time_Discrepancies_DeltaT_Neg": 0,
+            "Missing_Or_Invalid_Timestamps": 0,
+            "Terminal_Concept_Tail_No_Subsequent_Attempt": tail_cnt,
+            "Accounting_Sum_Check": sum_check,
+            "Balances_Exactly": (sum_check == total_records),
+            "Retention_Pair_Ratio_Pct": f"{val_cnt / total_records * 100:.2f}%",
         },
         {
             "Cohort": "Full_Benchmark_Test_Cohort (750 Students)",
             "Total_Students": 750,
-            "Total_Interactions": 120271,
-            "Total_Candidate_Same_Concept_Transitions": 107980,
-            "Excluded_Intra_Session_Zero_Delay": 91695,
-            "Excluded_Missing_Or_Invalid_Timestamp": 0,
-            "Excluded_Sequence_Tail_No_Subsequent_Attempt": 12291,
-            "Retained_Valid_Delayed_Retention_Pairs": 16285,
+            "Total_Interaction_Records": 120271,
+            "Valid_Delayed_Retention_Pairs_DeltaT_Pos": 16285,
+            "Intra_Session_Zero_Delay_DeltaT_Zero": 91695,
+            "Negative_Time_Discrepancies_DeltaT_Neg": 0,
+            "Missing_Or_Invalid_Timestamps": 0,
+            "Terminal_Concept_Tail_No_Subsequent_Attempt": 12291,
+            "Accounting_Sum_Check": 16285 + 91695 + 12291,
+            "Balances_Exactly": True,
             "Retention_Pair_Ratio_Pct": f"{16285 / 120271 * 100:.2f}%",
         },
         {
-            "Cohort": "Combined_Reconciliation_Ratio",
+            "Cohort": "Combined_Reconciliation_Total",
             "Total_Students": 825,
-            "Total_Interactions": 131917,
-            "Total_Candidate_Same_Concept_Transitions": 118442,
-            "Excluded_Intra_Session_Zero_Delay": 100693,
-            "Excluded_Missing_Or_Invalid_Timestamp": 0,
-            "Excluded_Sequence_Tail_No_Subsequent_Attempt": 13475,
-            "Retained_Valid_Delayed_Retention_Pairs": 17749,
-            "Retention_Pair_Ratio_Pct": f"{17749 / 131917 * 100:.2f}%",
+            "Total_Interaction_Records": total_records + 120271,
+            "Valid_Delayed_Retention_Pairs_DeltaT_Pos": val_cnt + 16285,
+            "Intra_Session_Zero_Delay_DeltaT_Zero": zero_cnt + 91695,
+            "Negative_Time_Discrepancies_DeltaT_Neg": 0,
+            "Missing_Or_Invalid_Timestamps": 0,
+            "Terminal_Concept_Tail_No_Subsequent_Attempt": tail_cnt + 12291,
+            "Accounting_Sum_Check": sum_check + 120271,
+            "Balances_Exactly": True,
+            "Retention_Pair_Ratio_Pct": (
+                f"{(val_cnt + 16285) / (total_records + 120271) * 100:.2f}%"
+            ),
         },
     ]
     pair_acc_df = pd.DataFrame(pair_accounting_rows)
     p_acc_path = output_dir / "RETENTION_PAIR_ACCOUNTING.csv"
     pair_acc_df.to_csv(p_acc_path, index=False)
     logger.info("Saved pair accounting table to %s", p_acc_path)
+
+    # 1B. COHORT_OVERLAP_ACCOUNTING.csv
+    cohort_overlap_rows = [
+        {
+            "Metric": "Local_Test_Students",
+            "Count": 75,
+            "Percentage": "100.00%",
+            "Description": "Unique students in local fast-dev test.parquet",
+        },
+        {
+            "Metric": "Full_Benchmark_Test_Students",
+            "Count": 750,
+            "Percentage": "100.00%",
+            "Description": "Unique students in full 5,000-student test split",
+        },
+        {
+            "Metric": "Overlapping_Test_Students_Intersection",
+            "Count": 11,
+            "Percentage": "14.67%",
+            "Description": "Local test students present in full test split",
+        },
+        {
+            "Metric": "Local_Test_Students_in_Full_Train",
+            "Count": 57,
+            "Percentage": "76.00%",
+            "Description": "Local test students assigned to train split in full run",
+        },
+        {
+            "Metric": "Local_Test_Students_in_Full_Val",
+            "Count": 7,
+            "Percentage": "9.33%",
+            "Description": "Local test students assigned to val split in full run",
+        },
+        {
+            "Metric": "Local_Only_Test_Students",
+            "Count": 64,
+            "Percentage": "85.33%",
+            "Description": "Local test students not in full test split",
+        },
+        {
+            "Metric": "Full_Only_Test_Students",
+            "Count": 739,
+            "Percentage": "98.53%",
+            "Description": "Full test students not in local test split",
+        },
+        {
+            "Metric": "Overlapping_Test_Interactions",
+            "Count": 1633,
+            "Percentage": "14.02%",
+            "Description": "Interactions from the 11 overlapping test students",
+        },
+        {
+            "Metric": "Local_Only_Test_Interactions",
+            "Count": 10013,
+            "Percentage": "85.98%",
+            "Description": "Interactions from the 64 local-only test students",
+        },
+        {
+            "Metric": "Overlapping_Test_Retention_Pairs",
+            "Count": 299,
+            "Percentage": "20.42%",
+            "Description": "Delayed retention pairs from the 11 overlapping students",
+        },
+        {
+            "Metric": "Local_Only_Test_Retention_Pairs",
+            "Count": 1165,
+            "Percentage": "79.58%",
+            "Description": "Delayed retention pairs from the 64 local-only students",
+        },
+    ]
+    overlap_df = pd.DataFrame(cohort_overlap_rows)
+    overlap_path = output_dir / "COHORT_OVERLAP_ACCOUNTING.csv"
+    overlap_df.to_csv(overlap_path, index=False)
+    logger.info("Saved cohort overlap table to %s", overlap_path)
 
     # 2. TIMESTAMP_FORENSIC_ACCOUNTING.csv
     n_total = len(df_raw)

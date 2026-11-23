@@ -1,0 +1,12 @@
+Metric,Count,Percentage,Description
+Local_Test_Students,75,100.00%,Unique students in local fast-dev test.parquet
+Full_Benchmark_Test_Students,750,100.00%,Unique students in full 5000-student test split
+Overlapping_Test_Students_Intersection,11,14.67%,Local test students present in full test split
+Local_Test_Students_in_Full_Train,57,76.00%,Local test students assigned to train split in full run
+Local_Test_Students_in_Full_Val,7,9.33%,Local test students assigned to val split in full run
+Local_Only_Test_Students,64,85.33%,Local test students not in full test split
+Full_Only_Test_Students,739,98.53%,Full test students not in local test split
+Overlapping_Test_Interactions,1633,14.02%,Interactions from the 11 overlapping test students
+Local_Only_Test_Interactions,10013,85.98%,Interactions from the 64 local-only test students
+Overlapping_Test_Retention_Pairs,299,20.42%,Delayed retention pairs from the 11 overlapping students
+Local_Only_Test_Retention_Pairs,1165,79.58%,Delayed retention pairs from the 64 local-only students
